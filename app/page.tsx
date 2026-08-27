@@ -190,6 +190,27 @@ export default function Home() {
   useEffect(() => { if (!published?.url) return; QRCode.toDataURL(published.url, { width: 220, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#14253d', light: '#ffffff' } }).then(setQrCode).catch(() => setQrCode('')); }, [published]);
   const page = pageTypes.find((item) => item.id === selection.pageType); const audience = audiences.find((item) => item.id === selection.audience); const design = designs.find((item) => item.id === selection.design); const selectedFeatureNames = features.filter((item) => selection.features.includes(item.id)).map((item) => item.title);
   const prompt = useMemo(() => { if (!page || !audience || !design) return ''; return `현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 작업해줘.\n\n[목표]\n${page.goal}\n\n[대상]\n${audience.title}이 주로 사용한다.\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일 화면에서도 읽기 쉽고 터치하기 편하게 만든다.\n\n[기능]\n- ${selectedFeatureNames.length ? selectedFeatureNames.join('\n- ') : '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 조건]\n1. 워크스페이스에 index.html 파일을 직접 생성한다.\n2. HTML, CSS, JavaScript를 모두 index.html 하나에 작성한다.\n3. 외부 CDN, 외부 폰트, 외부 이미지 URL, 서버 API, 로그인 기능을 사용하지 않는다.\n4. npm이나 별도 패키지를 설치하지 않는다.\n5. 현재 워크스페이스 외부의 파일을 수정하지 않는다.\n6. 완성 후 브라우저에서 직접 열어 기능과 화면을 확인한다.\n7. 오류가 있으면 수정한 후 작업 완료 여부를 알려준다.`; }, [audience, design, page, selectedFeatureNames]);
+  useEffect(() => {
+    if (step !== 'builder' || !prompt) return;
+    const panelFoot = document.querySelector('.prompt-panel-foot');
+    if (!panelFoot || panelFoot.querySelector('[data-direct-edit]')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'text-button direct-edit-button';
+    button.dataset.directEdit = 'true';
+    button.textContent = '직접 수정';
+    button.addEventListener('click', () => {
+      const edited = window.prompt('Antigravity에 보낼 프롬프트를 직접 수정하세요.', prompt);
+      if (edited?.trim() && edited !== prompt) {
+        void copyToClipboard(edited).then(() => {
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1600);
+        });
+      }
+    });
+    panelFoot.appendChild(button);
+    return () => button.remove();
+  }, [prompt, step]);
   const revisionPrompt = useMemo(() => { const requests = revisionOptions.filter((item) => revisionSelected.includes(item.id)).map((item) => `- ${item.text}`); if (directRevision.trim()) requests.push(`- ${directRevision.trim()}`); return `현재 index.html의 내용과 기능은 유지하면서 다음 사항만 수정해줘.\n\n${requests.length ? requests.join('\n') : '- 화면을 다시 확인하고 가독성과 모바일 대응을 개선한다.'}\n\n수정 후 브라우저에서 다시 확인해줘.`; }, [directRevision, revisionSelected]);
   const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setRevisionSelected([]); setDirectRevision(''); setFile(null); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
   const copyPrompt = useCallback(() => { if (!prompt) return; copyToClipboard(prompt).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); }); }, [prompt]);
