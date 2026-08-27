@@ -272,11 +272,6 @@ function Welcome({ builderCode, latest, onStart, onOpenLatest }: { builderCode: 
       <section className="welcome-copy">
         <p className="eyebrow">FIRST AGENTIC BUILD / 40 MIN LAB</p>
         <h1><em>AI와 만드는</em><br />첫 웹페이지.</h1>
-        <div className="builder-badge">
-          <span className="badge-label">YOUR BUILDER CODE</span>
-          <strong>{builderCode}</strong>
-          <small>Your first agentic build</small>
-        </div>
         <button className="primary-button large" type="button" onClick={onStart}>실습 시작하기 <Icon name="arrow" size={19} /></button>
         {latest ? <button className="latest-link" type="button" onClick={onOpenLatest}><Icon name="link" size={15} /> 최근 게시 결과 열기 <span>{formatDate(latest.createdAt)}</span></button> : null}
       </section>
@@ -291,7 +286,7 @@ function Welcome({ builderCode, latest, onStart, onOpenLatest }: { builderCode: 
         </div>
       </section>
     </div>
-    <div className="welcome-footer"><span>AX 테크선도팀</span></div>
+    <div className="welcome-footer"><span className="welcome-code-chip"><span>실습 코드</span><strong>{builderCode.replace('BUILDER ', '')}</strong></span><span>AX 테크선도팀</span></div>
   </main>;
 }
 
