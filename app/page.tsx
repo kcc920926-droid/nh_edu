@@ -12,6 +12,8 @@ type IconName =
 type Selection = { pageType: string; audience: string; design: string; features: string[] };
 type Validation = { issues: string[]; warnings: string[] };
 type Published = { pageId: string; url: string; createdAt: string; expiresAt: string };
+type LearningVisual = { layout: 'flow' | 'grid' | 'cards'; items: Array<{ label: string; note?: string; icon: IconName }> };
+type LearningSlide = { kicker: string; title: string; body: string; stat: string; visual: LearningVisual };
 
 const MAX_BYTES = 1024 * 1024;
 const BUILDER_KEY = 'ai-lab-builder-code-v1';
@@ -47,22 +49,64 @@ const features = [
   { id: 'print', title: '인쇄 버튼', description: '화면을 문서로 출력하기', icon: 'desktop' as IconName },
   { id: 'motion', title: '부드러운 애니메이션', description: '상태 변화를 자연스럽게 보여주기', icon: 'spark' as IconName },
 ] as const;
-const slides = [
-  { kicker: '01 / 시작', title: '코딩을 몰라도 웹페이지를 만들 수 있을까?', body: '오늘은 HTML 문법을 외우지 않습니다. 만들고 싶은 결과를 말로 설명하고, AI가 파일로 만드는 과정을 직접 경험합니다.', stat: '목표는 문법이 아니라 경험입니다.' },
-  { kicker: '02 / 차이', title: '생성형 AI와 에이전틱 코딩은 무엇이 다를까요?', body: '일반 AI가 답변을 만들어 준다면, 에이전트는 정해진 작업 공간에서 파일을 만들고 실행 결과까지 확인합니다.', stat: '사람은 방향을, 에이전트는 파일을 담당합니다.' },
-  { kicker: '03 / 역할', title: '사람이 목표를 정하고 에이전트가 파일을 만듭니다.', body: '좋은 결과를 위해서는 무엇을 만들지, 누가 볼지, 어떤 내용을 넣을지, 어떻게 보여줄지를 정하면 됩니다.', stat: '목표 → 내용 → 형태 → 확인' },
-  { kicker: '04 / 요청', title: '좋은 요청을 만드는 네 가지 요소', body: '무엇을 만들 것인가 · 누가 볼 것인가 · 어떤 내용을 넣을 것인가 · 어떤 형태로 보여줄 것인가. 이 네 가지면 충분합니다.', stat: '짧고 구체적으로 말해 보세요.' },
-  { kicker: '05 / 결과', title: '오늘 만들 수 있는 결과물', body: '행사 안내, 업무 체크리스트, 현황 대시보드 중 하나를 골라 실제로 브라우저에서 열리는 페이지를 만듭니다.', stat: '세 가지 모두 단일 index.html로 완성됩니다.' },
-  { kicker: '06 / 반복', title: '선택 → 생성 → 수정 → 게시', body: '첫 결과가 완벽하지 않아도 괜찮습니다. 화면을 보고 수정 요청을 한 뒤, 완성된 파일을 업로드해 공개합니다.', stat: '반복할수록 에이전틱 작업이 됩니다.' },
-  { kicker: '07 / 실습', title: '이제 직접 만들어 보겠습니다.', body: '페이지 종류와 사용자를 고르면 바로 붙여 넣을 수 있는 Antigravity 프롬프트가 완성됩니다.', stat: '준비되면 다음 단계로 이동하세요.' },
-] as const;
+const slides: LearningSlide[] = [
+  {
+    kicker: '01 / 시작',
+    title: 'AI로 직접 나만의 페이지를 만들어 보자!',
+    body: '아이디어를 고르고 AI에게 요청하면, 바로 열어 볼 수 있는 페이지가 완성됩니다.',
+    stat: '아이디어에서 웹페이지까지',
+    visual: { layout: 'flow', items: [{ label: '아이디어', icon: 'spark' }, { label: 'AI 요청', icon: 'wand' }, { label: '내 페이지', icon: 'desktop' }] },
+  },
+  {
+    kicker: '02 / 에이전트',
+    title: 'AI가 파일을 만들고 화면까지 확인해요.',
+    body: 'Antigravity가 요청을 읽고 index.html을 만든 뒤 브라우저에서 결과를 확인합니다.',
+    stat: '요청부터 확인까지 한 번에',
+    visual: { layout: 'flow', items: [{ label: '요청', icon: 'copy' }, { label: 'index.html', icon: 'checklist' }, { label: '화면 확인', icon: 'desktop' }] },
+  },
+  {
+    kicker: '03 / 함께 만들기',
+    title: '나는 방향을 정하고, AI는 손을 움직여요.',
+    body: '대상과 내용, 분위기를 고르면 AI가 실제 페이지로 옮깁니다.',
+    stat: '함께 만드는 새로운 방식',
+    visual: { layout: 'cards', items: [{ label: '내가 정해요', note: '목표 · 대상 · 분위기', icon: 'user' }, { label: 'AI가 만들어요', note: '파일 · 기능 · 화면', icon: 'wand' }] },
+  },
+  {
+    kicker: '04 / 요청 만들기',
+    title: '원하는 모습을 네 가지만 알려 주세요.',
+    body: '페이지 종류, 볼 사람, 꼭 넣을 내용, 원하는 분위기를 고르면 됩니다.',
+    stat: '선택할수록 요청이 또렷해져요',
+    visual: { layout: 'grid', items: [{ label: '종류', icon: 'dashboard' }, { label: '대상', icon: 'users' }, { label: '내용', icon: 'checklist' }, { label: '분위기', icon: 'palette' }] },
+  },
+  {
+    kicker: '05 / 페이지 고르기',
+    title: '오늘 만들 페이지를 골라 보세요.',
+    body: '행사 안내, 업무 체크리스트, 현황 대시보드 중 마음에 드는 하나를 선택합니다.',
+    stat: '실제로 쓰는 페이지를 만들어요',
+    visual: { layout: 'cards', items: [{ label: '행사 안내', icon: 'calendar' }, { label: '체크리스트', icon: 'checklist' }, { label: '대시보드', icon: 'dashboard' }] },
+  },
+  {
+    kicker: '06 / 다듬기',
+    title: '만들고 보고, 마음에 들게 다듬어요.',
+    body: '글씨, 색상, 간격을 살펴보고 원하는 부분을 한 번 더 요청합니다.',
+    stat: '확인하고 고치면 더 좋아져요',
+    visual: { layout: 'flow', items: [{ label: '선택', icon: 'palette' }, { label: '생성', icon: 'wand' }, { label: '수정', icon: 'refresh' }, { label: '게시', icon: 'upload' }] },
+  },
+  {
+    kicker: '07 / 실습 시작',
+    title: '이제 내 페이지를 시작해 볼까요?',
+    body: '몇 가지를 고르면 Antigravity에 바로 보낼 요청문이 완성됩니다.',
+    stat: '준비되면 바로 시작해요!',
+    visual: { layout: 'flow', items: [{ label: '선택하기', icon: 'check' }, { label: '요청문 받기', icon: 'copy' }, { label: '만들기', icon: 'spark' }] },
+  },
+];
 const revisionOptions = [
-  { id: 'larger', title: '글씨를 더 크게', text: '전체 글씨를 조금 더 크게 만든다.' },
-  { id: 'brighter', title: '색상을 더 밝게', text: '배경과 주요 색상을 더 밝고 편안하게 조정한다.' },
-  { id: 'button', title: '버튼을 더 눈에 띄게', text: '주요 버튼이 첫 화면에서 더 잘 보이게 한다.' },
-  { id: 'spacing', title: '카드 간격을 넓게', text: '모바일에서 카드 사이 간격을 넉넉하게 만든다.' },
-  { id: 'shorter', title: '내용을 간결하게', text: '중복 문장을 줄이고 핵심 내용만 남긴다.' },
-  { id: 'mobile', title: '모바일 화면 개선', text: '작은 화면에서 읽기와 터치가 편하도록 레이아웃을 개선한다.' },
+  { id: 'larger', title: '글씨를 더 크게', text: '전체 글씨를 조금 더 크게 해 줘.' },
+  { id: 'brighter', title: '색상을 더 밝게', text: '배경과 주요 색상을 밝고 편안하게 바꿔 줘.' },
+  { id: 'button', title: '버튼을 더 눈에 띄게', text: '주요 버튼이 첫 화면에서 잘 보이게 해 줘.' },
+  { id: 'spacing', title: '카드 간격을 넓게', text: '모바일에서 카드 사이 간격을 넉넉하게 해 줘.' },
+  { id: 'shorter', title: '내용을 간결하게', text: '겹치는 문장을 줄이고 핵심만 남겨 줘.' },
+  { id: 'mobile', title: '모바일 화면 개선', text: '작은 화면에서도 읽고 누르기 편하게 바꿔 줘.' },
 ] as const;
 
 function makeBuilderCode() {
@@ -102,24 +146,24 @@ function validateHtml(text: string, fileName = 'index.html', fileSize = new Blob
   const issues: string[] = [];
   const warnings: string[] = [];
   if (!fileName.toLowerCase().endsWith('.html')) issues.push('`.html` 파일만 올릴 수 있습니다.');
-  if (fileSize === 0 || !text.trim()) issues.push('빈 파일은 올릴 수 없습니다.');
+  if (fileSize === 0 || !text.trim()) issues.push('내용이 있는 HTML 파일을 선택해 주세요.');
   if (fileSize > MAX_BYTES) issues.push('파일 크기는 1MB 이하여야 합니다.');
-  if (!/<html[\s>]/i.test(text) || !/<body[\s>]/i.test(text)) issues.push('완전한 HTML 문서(`<html>`, `<body>`)가 필요합니다.');
-  if (!/<meta[^>]+charset=/i.test(text)) warnings.push('문자 인코딩 선언이 없어 브라우저에 따라 한글이 다르게 보일 수 있습니다.');
+  if (!/<html[\s>]/i.test(text) || !/<body[\s>]/i.test(text)) issues.push('`<html>`과 `<body>`가 들어간 파일을 선택해 주세요.');
+  if (!/<meta[^>]+charset=/i.test(text)) warnings.push('한글 표시를 위해 charset 메타 태그를 추가해 주세요.');
   if (!/<meta[^>]+name=["']viewport["']/i.test(text)) warnings.push('모바일 대응을 위해 viewport 메타 태그를 권장합니다.');
   const resourcePatterns = [
-    { pattern: /<script\b[^>]+src\s*=\s*["'](?!data:|blob:)[^"']+/i, message: '외부 JavaScript는 사용할 수 없습니다. 코드를 index.html 안에 작성하세요.' },
-    { pattern: /<link\b[^>]+href\s*=\s*["'](?!data:|blob:)[^"']+/i, message: '외부 스타일·폰트·리소스는 사용할 수 없습니다.' },
-    { pattern: /<(?:img|audio|video|source)\b[^>]+src\s*=\s*["'](?:https?:|\/\/)/i, message: '외부 이미지·미디어 주소는 사용할 수 없습니다. data URL을 사용하세요.' },
-    { pattern: /@import\s+[^;]*(?:https?:|\/\/)/i, message: '외부 CSS import는 사용할 수 없습니다.' },
-    { pattern: /url\(\s*["']?(?:https?:|\/\/)/i, message: '외부 CSS 리소스는 사용할 수 없습니다.' },
-    { pattern: /<(?:iframe|object|embed|form|base)\b/i, message: '폼·프레임·객체 삽입은 안전을 위해 사용할 수 없습니다.' },
-    { pattern: /<meta\b[^>]+http-equiv\s*=\s*["']refresh/i, message: '자동 리다이렉트는 사용할 수 없습니다.' },
-    { pattern: /(?:href|src)\s*=\s*["']\s*javascript:/i, message: '`javascript:` 링크는 사용할 수 없습니다.' },
-    { pattern: /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)\s*[(.]/i, message: '외부 네트워크 요청 코드는 사용할 수 없습니다.' },
+    { pattern: /<script\b[^>]+src\s*=\s*["'](?!data:|blob:)[^"']+/i, message: 'JavaScript 코드를 index.html 안에 넣어 주세요.' },
+    { pattern: /<link\b[^>]+href\s*=\s*["'](?!data:|blob:)[^"']+/i, message: '스타일과 폰트도 index.html 안에 넣어 주세요.' },
+    { pattern: /<(?:img|audio|video|source)\b[^>]+src\s*=\s*["'](?:https?:|\/\/)/i, message: '이미지와 미디어는 data URL로 넣어 주세요.' },
+    { pattern: /@import\s+[^;]*(?:https?:|\/\/)/i, message: 'CSS는 `<style>` 태그 안에 넣어 주세요.' },
+    { pattern: /url\(\s*["']?(?:https?:|\/\/)/i, message: 'CSS 리소스도 index.html 안에 넣어 주세요.' },
+    { pattern: /<(?:iframe|object|embed|form|base)\b/i, message: '폼과 프레임, 객체 삽입을 빼고 구성해 주세요.' },
+    { pattern: /<meta\b[^>]+http-equiv\s*=\s*["']refresh/i, message: '자동 이동 코드를 빼 주세요.' },
+    { pattern: /(?:href|src)\s*=\s*["']\s*javascript:/i, message: '링크에는 일반 주소를 넣어 주세요.' },
+    { pattern: /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)\s*[(.]/i, message: '네트워크 요청을 빼고 한 파일 안에서 완성해 주세요.' },
   ];
   for (const item of resourcePatterns) if (item.pattern.test(text)) issues.push(item.message);
-  if (/<a\b[^>]+href\s*=\s*["'](?:https?:|\/\/)/i.test(text)) warnings.push('외부 링크는 결과 화면의 안전한 격리 영역 안에서 열립니다.');
+  if (/<a\b[^>]+href\s*=\s*["'](?:https?:|\/\/)/i.test(text)) warnings.push('외부 링크는 격리된 결과 화면에서 열립니다.');
   return { issues: Array.from(new Set(issues)), warnings: Array.from(new Set(warnings)) };
 }
 
@@ -137,10 +181,23 @@ function formatDate(value: string) { try { return new Intl.DateTimeFormat('ko-KR
 function TopBar({ step, onReset }: { step: Step; onReset: () => void }) {
   const steps: Array<{ key: Step; label: string }> = [{ key: 'learn', label: '개념' }, { key: 'builder', label: '선택' }, { key: 'agent', label: '생성' }, { key: 'upload', label: '게시' }];
   const active = steps.findIndex((item) => item.key === step);
-  return <header className="topbar"><button className="brand" type="button" onClick={onReset} aria-label="처음 화면으로"><span className="brand-mark"><Icon name="spark" size={18} /></span><span><strong>AI AGENTIC</strong><small>CODING LAB</small></span></button><div className="top-progress" aria-label="실습 진행 상태">{steps.map((item, index) => <div className={`top-step ${index <= active && active >= 0 ? 'is-active' : ''} ${item.key === step ? 'is-current' : ''}`} key={item.key}><span>{String(index + 1).padStart(2, '0')}</span>{item.label}</div>)}</div><div className="top-status"><span className="status-dot" /> 브라우저에서 바로 실습</div></header>;
+  return <header className="topbar"><button className="brand" type="button" onClick={onReset} aria-label="처음 화면으로"><span className="brand-mark"><Icon name="spark" size={18} /></span><span><strong>AI AGENTIC</strong><small>CODING LAB</small></span></button><div className="top-progress" aria-label="실습 진행 상태">{steps.map((item, index) => <div className={`top-step ${index <= active && active >= 0 ? 'is-active' : ''} ${item.key === step ? 'is-current' : ''}`} key={item.key}><span>{String(index + 1).padStart(2, '0')}</span>{item.label}</div>)}</div></header>;
 }
-function PageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) { return <div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="lead">{description}</p></div>{action}</div>; }
+function PageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description?: string; action?: React.ReactNode }) { return <div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{description ? <p className="lead">{description}</p> : null}</div>{action}</div>; }
 function SelectionCard({ selected, onClick, icon, title, description, compact = false }: { selected: boolean; onClick: () => void; icon: IconName; title: string; description: string; compact?: boolean }) { return <button type="button" className={`selection-card ${compact ? 'is-compact' : ''} ${selected ? 'is-selected' : ''}`} aria-pressed={selected} onClick={onClick}><span className="card-icon"><Icon name={icon} /></span><span className="card-copy"><strong>{title}</strong><small>{description}</small></span><span className="card-check">{selected ? <Icon name="check" size={16} /> : null}</span></button>; }
+
+function LearningDiagram({ visual, title }: { visual: LearningVisual; title: string }) {
+  return <div className={`learning-diagram is-${visual.layout}`} role="img" aria-label={`${title} 핵심 흐름`}>
+    <span className="diagram-label">한눈에 보기</span>
+    <div className="diagram-items">
+      {visual.items.map((item) => <div className="diagram-item" key={item.label}>
+        <span className="diagram-icon"><Icon name={item.icon} size={23} /></span>
+        <strong>{item.label}</strong>
+        {item.note ? <small>{item.note}</small> : null}
+      </div>)}
+    </div>
+  </div>;
+}
 
 function Welcome({ builderCode, latest, onStart, onOpenLatest }: { builderCode: string; latest: Published | null; onStart: () => void; onOpenLatest: () => void }) {
   return <main className="welcome-shell">
@@ -173,17 +230,92 @@ function Welcome({ builderCode, latest, onStart, onOpenLatest }: { builderCode: 
   </main>;
 }
 
-function Learn({ index, setIndex, onNext }: { index: number; setIndex: (value: number) => void; onNext: () => void }) { const slide = slides[index]; return <main className="app-shell"><PageHeading eyebrow={`ORIENTATION / ${slide.kicker}`} title={slide.title} description={slide.body} action={<div className="slide-count"><strong>{String(index + 1).padStart(2, '0')}</strong><span>/ 07</span></div>} /><section className="learning-stage"><div className="learning-card"><div className="learning-number">{String(index + 1).padStart(2, '0')}</div><div className="learning-content"><p className="eyebrow">{slide.kicker}</p><h2>{slide.title}</h2><p>{slide.body}</p><div className="learning-stat"><span className="stat-line" />{slide.stat}</div></div><div className="learning-orbit"><span /><span /><span /></div></div><div className="slide-dots" role="tablist" aria-label="개념 슬라이드">{slides.map((item, itemIndex) => <button type="button" role="tab" aria-selected={itemIndex === index} aria-label={`${itemIndex + 1}번째 슬라이드`} className={itemIndex === index ? 'is-active' : ''} onClick={() => setIndex(itemIndex)} key={item.kicker} />)}</div></section><div className="page-actions"><button className="text-button" type="button" onClick={() => index > 0 && setIndex(index - 1)} disabled={index === 0}><Icon name="back" size={17} /> 이전</button>{index < slides.length - 1 ? <button className="primary-button" type="button" onClick={() => setIndex(index + 1)}>다음 슬라이드 <Icon name="arrow" size={17} /></button> : <button className="primary-button" type="button" onClick={onNext}>직접 만들어 보기 <Icon name="arrow" size={17} /></button>}</div></main>; }
+function Learn({ index, setIndex, onNext }: { index: number; setIndex: (value: number) => void; onNext: () => void }) {
+  const slide = slides[index];
+  return <main className="app-shell learning-shell">
+    <div className="learning-header">
+      <p className="eyebrow">ORIENTATION / {slide.kicker}</p>
+      <div className="slide-count"><strong>{String(index + 1).padStart(2, '0')}</strong><span>/ 07</span></div>
+    </div>
+    <section className="learning-stage">
+      <div className="learning-card">
+        <div className="learning-number">{String(index + 1).padStart(2, '0')}</div>
+        <div className="learning-content">
+          <p className="eyebrow">{slide.kicker}</p>
+          <h1>{slide.title}</h1>
+          <p>{slide.body}</p>
+          <div className="learning-stat"><span className="stat-line" />{slide.stat}</div>
+        </div>
+        <LearningDiagram visual={slide.visual} title={slide.title} />
+      </div>
+      <div className="slide-dots" role="tablist" aria-label="개념 슬라이드">{slides.map((item, itemIndex) => <button type="button" role="tab" aria-selected={itemIndex === index} aria-label={`${itemIndex + 1}번째 슬라이드`} className={itemIndex === index ? 'is-active' : ''} onClick={() => setIndex(itemIndex)} key={item.kicker} />)}</div>
+    </section>
+    <div className="page-actions"><button className="text-button" type="button" onClick={() => index > 0 && setIndex(index - 1)} disabled={index === 0}><Icon name="back" size={17} /> 이전</button>{index < slides.length - 1 ? <button className="primary-button" type="button" onClick={() => setIndex(index + 1)}>다음 <Icon name="arrow" size={17} /></button> : <button className="primary-button" type="button" onClick={onNext}>페이지 만들기 <Icon name="arrow" size={17} /></button>}</div>
+  </main>;
+}
 
-function Builder({ selection, setSelection, prompt, copied, onCopy, onNext }: { selection: Selection; setSelection: React.Dispatch<React.SetStateAction<Selection>>; prompt: string; copied: boolean; onCopy: () => void; onNext: () => void }) { const page = pageTypes.find((item) => item.id === selection.pageType); const toggleFeature = (id: string) => setSelection((current) => ({ ...current, features: current.features.includes(id) ? current.features.filter((item) => item !== id) : current.features.length < 3 ? [...current.features, id] : current.features })); return <main className="app-shell builder-shell"><PageHeading eyebrow="BUILD / 01 — CHOOSE YOUR DIRECTION" title="무엇을 만들어 볼까요?" description="카드를 고르면 Antigravity가 이해할 수 있는 작업 요청으로 정리됩니다." /><div className="builder-layout"><section className="builder-selections"><div className="selection-section"><div className="section-heading"><span className="section-index">01</span><div><h2>만들 페이지</h2><p>하나를 선택하세요.</p></div></div><div className="card-grid page-grid">{pageTypes.map((item) => <SelectionCard key={item.id} selected={selection.pageType === item.id} onClick={() => setSelection({ pageType: item.id, audience: item.defaultAudience, design: item.defaultDesign, features: [...item.defaultFeatures] })} icon={item.icon} title={item.title} description={item.description} />)}</div></div><div className="selection-section"><div className="section-heading"><span className="section-index">02</span><div><h2>누가 보나요?</h2><p>페이지를 사용할 사람을 고르세요.</p></div></div><div className="card-grid compact-grid">{audiences.map((item) => <SelectionCard key={item.id} selected={selection.audience === item.id} onClick={() => setSelection((current) => ({ ...current, audience: item.id }))} icon={item.icon} title={item.title} description={item.description} compact />)}</div></div><div className="selection-section"><div className="section-heading"><span className="section-index">03</span><div><h2>어떤 분위기인가요?</h2><p>내용을 보여주는 방식을 고르세요.</p></div></div><div className="card-grid compact-grid">{designs.map((item) => <SelectionCard key={item.id} selected={selection.design === item.id} onClick={() => setSelection((current) => ({ ...current, design: item.id }))} icon={item.icon} title={item.title} description={item.description} compact />)}</div></div><div className="selection-section"><div className="section-heading"><span className="section-index">04</span><div><h2>추가 기능 <small>선택 사항 · 최대 3개</small></h2><p>작동하는 요소를 더해 보세요.</p></div></div><div className="feature-grid">{features.map((item) => <button type="button" className={`feature-chip ${selection.features.includes(item.id) ? 'is-selected' : ''}`} aria-pressed={selection.features.includes(item.id)} onClick={() => toggleFeature(item.id)} key={item.id}><Icon name={item.icon} size={17} /><span>{item.title}</span>{selection.features.includes(item.id) ? <Icon name="check" size={15} /> : null}</button>)}</div></div></section><aside className="prompt-panel"><div className="prompt-panel-head"><div><p className="eyebrow">LIVE PROMPT</p><h2>조립된 요청</h2></div><span className={`prompt-ready ${page ? 'is-ready' : ''}`}><span />{page ? '준비됨' : '선택 필요'}</span></div><div className="prompt-preview">{page ? <pre>{prompt}</pre> : <div className="prompt-empty"><Icon name="wand" size={28} /><strong>페이지를 선택하면<br />프롬프트가 나타납니다.</strong><small>왼쪽 카드를 눌러 시작하세요.</small></div>}</div><div className="prompt-panel-foot"><button className="secondary-button full" type="button" onClick={onCopy} disabled={!page}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '프롬프트 복사'}</button><p><Icon name="lock" size={13} /> 외부 서버로 선택 정보를 보내지 않습니다.</p></div></aside></div><div className="sticky-actions"><button className="text-button" type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>처음부터</button><button className="primary-button" type="button" disabled={!page} onClick={onNext}>Antigravity로 이동 <Icon name="arrow" size={17} /></button></div></main>; }
+function Builder({ selection, setSelection, prompt, copied, onCopy, onNext }: { selection: Selection; setSelection: React.Dispatch<React.SetStateAction<Selection>>; prompt: string; copied: boolean; onCopy: () => void; onNext: () => void }) {
+  const page = pageTypes.find((item) => item.id === selection.pageType);
+  const toggleFeature = (id: string) => setSelection((current) => ({ ...current, features: current.features.includes(id) ? current.features.filter((item) => item !== id) : current.features.length < 3 ? [...current.features, id] : current.features }));
+  return <main className="app-shell builder-shell">
+    <PageHeading eyebrow="BUILD / 01 — CHOOSE YOUR DIRECTION" title="무엇을 만들어 볼까요?" description="카드를 고르면 Antigravity용 요청문이 바로 완성됩니다." />
+    <div className="builder-layout">
+      <section className="builder-selections">
+        <div className="selection-section"><div className="section-heading"><span className="section-index">01</span><div><h2>만들 페이지</h2><p>하나를 골라 주세요.</p></div></div><div className="card-grid page-grid">{pageTypes.map((item) => <SelectionCard key={item.id} selected={selection.pageType === item.id} onClick={() => setSelection({ pageType: item.id, audience: item.defaultAudience, design: item.defaultDesign, features: [...item.defaultFeatures] })} icon={item.icon} title={item.title} description={item.description} />)}</div></div>
+        <div className="selection-section"><div className="section-heading"><span className="section-index">02</span><div><h2>누가 사용할까요?</h2><p>주로 볼 사람을 골라 주세요.</p></div></div><div className="card-grid compact-grid">{audiences.map((item) => <SelectionCard key={item.id} selected={selection.audience === item.id} onClick={() => setSelection((current) => ({ ...current, audience: item.id }))} icon={item.icon} title={item.title} description={item.description} compact />)}</div></div>
+        <div className="selection-section"><div className="section-heading"><span className="section-index">03</span><div><h2>어떤 느낌이 좋을까요?</h2><p>마음에 드는 화면 분위기를 골라 주세요.</p></div></div><div className="card-grid compact-grid">{designs.map((item) => <SelectionCard key={item.id} selected={selection.design === item.id} onClick={() => setSelection((current) => ({ ...current, design: item.id }))} icon={item.icon} title={item.title} description={item.description} compact />)}</div></div>
+        <div className="selection-section"><div className="section-heading"><span className="section-index">04</span><div><h2>더할 기능 <small>최대 3개</small></h2><p>원하는 기능을 골라 주세요.</p></div></div><div className="feature-grid">{features.map((item) => <button type="button" className={`feature-chip ${selection.features.includes(item.id) ? 'is-selected' : ''}`} aria-pressed={selection.features.includes(item.id)} onClick={() => toggleFeature(item.id)} key={item.id}><Icon name={item.icon} size={17} /><span>{item.title}</span>{selection.features.includes(item.id) ? <Icon name="check" size={15} /> : null}</button>)}</div></div>
+      </section>
+      <aside className="prompt-panel"><div className="prompt-panel-head"><div><p className="eyebrow">LIVE PROMPT</p><h2>완성된 요청문</h2></div><span className={`prompt-ready ${page ? 'is-ready' : ''}`}><span />{page ? '준비 완료' : '페이지 선택'}</span></div><div className="prompt-preview">{page ? <pre>{prompt}</pre> : <div className="prompt-empty"><Icon name="wand" size={28} /><strong>페이지를 고르면<br />요청문이 완성돼요.</strong><small>왼쪽 카드에서 시작해 주세요.</small></div>}</div><div className="prompt-panel-foot"><button className="secondary-button full" type="button" onClick={onCopy} disabled={!page}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '요청문 복사'}</button><p><Icon name="lock" size={13} /> 선택 내용은 이 브라우저에서만 다룹니다.</p></div></aside>
+    </div>
+    <div className="sticky-actions"><button className="text-button" type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>맨 위로</button><button className="primary-button" type="button" disabled={!page} onClick={onNext}>요청문 확인하기 <Icon name="arrow" size={17} /></button></div>
+  </main>;
+}
 
-function AgentGuide({ prompt, copied, onCopy, onNext, onBack }: { prompt: string; copied: boolean; onCopy: () => void; onNext: () => void; onBack: () => void }) { return <main className="app-shell"><PageHeading eyebrow="BUILD / 02 — WORK WITH YOUR AGENT" title="이제 Antigravity에 요청을 전달하세요." description="현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 실제 파일을 만들도록 요청합니다." /><div className="agent-layout"><section className="agent-steps"><div className="agent-step"><span>01</span><div><strong>프롬프트를 복사합니다.</strong><p>아래 요청 전체를 복사해 Antigravity 채팅창에 붙여 넣으세요.</p></div><Icon name="copy" size={20} /></div><div className="agent-step"><span>02</span><div><strong>파일 생성을 확인합니다.</strong><p>Antigravity가 `index.html`을 바탕화면\\AI실습 폴더에 직접 저장하게 합니다.</p></div><Icon name="checklist" size={20} /></div><div className="agent-step"><span>03</span><div><strong>브라우저에서 결과를 확인합니다.</strong><p>화면을 보고 글씨·색상·간격을 바꾸고 싶다면 다음 단계에서 수정 요청을 만듭니다.</p></div><Icon name="desktop" size={20} /></div><div className="agent-help"><Icon name="warning" size={19} /><div><strong>파일이 보이지 않나요?</strong><p>“현재 워크스페이스에 완성된 결과물을 index.html 파일로 직접 저장해줘.”라고 다시 입력하세요.</p></div></div></section><section className="agent-prompt-card"><div className="prompt-card-head"><span className="live-dot" /> ANTIGRAVITY REQUEST <button className="icon-button" type="button" onClick={onCopy} aria-label="프롬프트 복사"><Icon name={copied ? 'check' : 'copy'} size={18} /></button></div><pre>{prompt}</pre><button className="secondary-button full" type="button" onClick={onCopy}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '클립보드에 복사됨' : '프롬프트 복사'}</button></section></div><div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 선택 다시 하기</button><button className="primary-button" type="button" onClick={onNext}>파일 확인 후 다음 <Icon name="arrow" size={17} /></button></div></main>; }
+function AgentGuide({ prompt, copied, onCopy, onNext, onBack }: { prompt: string; copied: boolean; onCopy: () => void; onNext: () => void; onBack: () => void }) {
+  return <main className="app-shell">
+    <PageHeading eyebrow="BUILD / 02 — WORK WITH YOUR AGENT" title="요청문을 Antigravity에 붙여 넣어 주세요." description="AI실습 워크스페이스에서 index.html을 만들 차례입니다." />
+    <div className="agent-layout">
+      <section className="agent-steps">
+        <div className="agent-step"><span>01</span><div><strong>요청문을 복사해요.</strong><p>오른쪽 요청문을 복사해 Antigravity 채팅창에 붙여 넣습니다.</p></div><Icon name="copy" size={20} /></div>
+        <div className="agent-step"><span>02</span><div><strong>index.html을 확인해요.</strong><p>파일은 바탕화면\\AI실습 폴더에 저장됩니다.</p></div><Icon name="checklist" size={20} /></div>
+        <div className="agent-step"><span>03</span><div><strong>완성된 화면을 열어 봐요.</strong><p>글씨, 색상, 간격을 살펴보고 다음 단계에서 원하는 부분을 다듬습니다.</p></div><Icon name="desktop" size={20} /></div>
+        <div className="agent-help"><Icon name="wand" size={19} /><div><strong>파일 저장 한 번 더 요청하기</strong><p>“완성된 결과를 현재 워크스페이스의 index.html로 저장해 줘.”라고 입력하세요.</p></div></div>
+      </section>
+      <section className="agent-prompt-card"><div className="prompt-card-head"><span className="live-dot" /> ANTIGRAVITY REQUEST <button className="icon-button" type="button" onClick={onCopy} aria-label="요청문 복사"><Icon name={copied ? 'check' : 'copy'} size={18} /></button></div><pre>{prompt}</pre><button className="secondary-button full" type="button" onClick={onCopy}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '요청문 복사'}</button></section>
+    </div>
+    <div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 선택으로 돌아가기</button><button className="primary-button" type="button" onClick={onNext}>화면 다듬기 <Icon name="arrow" size={17} /></button></div>
+  </main>;
+}
 
-function Revision({ selected, setSelected, directText, setDirectText, prompt, copied, onCopy, onNext, onBack }: { selected: string[]; setSelected: React.Dispatch<React.SetStateAction<string[]>>; directText: string; setDirectText: (value: string) => void; prompt: string; copied: boolean; onCopy: () => void; onNext: () => void; onBack: () => void }) { const toggle = (id: string) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]); return <main className="app-shell"><PageHeading eyebrow="BUILD / 03 — ITERATE ON THE RESULT" title="첫 결과를 보고, 한 번 더 다듬어 보세요." description="완벽한 첫 시도보다 확인하고 수정하는 과정이 중요합니다." /><div className="revision-layout"><section><div className="revision-intro"><span className="number-badge">1</span><div><h2>바꾸고 싶은 부분을 고르세요.</h2><p>여러 개를 함께 선택할 수 있습니다.</p></div></div><div className="revision-options">{revisionOptions.map((item) => <button type="button" className={`revision-option ${selected.includes(item.id) ? 'is-selected' : ''}`} aria-pressed={selected.includes(item.id)} onClick={() => toggle(item.id)} key={item.id}><span className="option-check">{selected.includes(item.id) ? <Icon name="check" size={14} /> : null}</span><span><strong>{item.title}</strong><small>{item.text}</small></span></button>)}</div><label className="direct-request"><span>직접 요청 <small>선택 사항</small></span><textarea value={directText} maxLength={500} onChange={(event) => setDirectText(event.target.value)} placeholder="예: 제목을 더 차분한 표현으로 바꿔줘" /><span className="char-count">{directText.length} / 500</span></label></section><section className="revision-preview"><div className="preview-label"><span className="number-badge">2</span><div><h2>수정 요청 미리보기</h2><p>Antigravity에 그대로 붙여 넣으세요.</p></div></div><div className="revision-prompt"><pre>{prompt}</pre></div><button className="secondary-button full" type="button" onClick={onCopy} disabled={!selected.length && !directText.trim()}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '수정 프롬프트 복사'}</button></section></div><div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 이전 단계</button><button className="primary-button" type="button" onClick={onNext}>완성된 파일 업로드 <Icon name="arrow" size={17} /></button></div></main>; }
+function Revision({ selected, setSelected, directText, setDirectText, prompt, copied, onCopy, onNext, onBack }: { selected: string[]; setSelected: React.Dispatch<React.SetStateAction<string[]>>; directText: string; setDirectText: (value: string) => void; prompt: string; copied: boolean; onCopy: () => void; onNext: () => void; onBack: () => void }) {
+  const toggle = (id: string) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  return <main className="app-shell">
+    <PageHeading eyebrow="BUILD / 03 — ITERATE ON THE RESULT" title="완성된 화면을 내 취향에 맞게 다듬어 봐요." description="화면을 살펴보고 바꾸고 싶은 부분을 골라 주세요." />
+    <div className="revision-layout">
+      <section><div className="revision-intro"><span className="number-badge">1</span><div><h2>바꾸고 싶은 부분</h2><p>여러 개를 함께 고를 수 있어요.</p></div></div><div className="revision-options">{revisionOptions.map((item) => <button type="button" className={`revision-option ${selected.includes(item.id) ? 'is-selected' : ''}`} aria-pressed={selected.includes(item.id)} onClick={() => toggle(item.id)} key={item.id}><span className="option-check">{selected.includes(item.id) ? <Icon name="check" size={14} /> : null}</span><span><strong>{item.title}</strong><small>{item.text}</small></span></button>)}</div><label className="direct-request"><span>직접 적기 <small>선택</small></span><textarea value={directText} maxLength={500} onChange={(event) => setDirectText(event.target.value)} placeholder="예: 제목을 조금 더 차분하게 바꿔 줘" /><span className="char-count">{directText.length} / 500</span></label></section>
+      <section className="revision-preview"><div className="preview-label"><span className="number-badge">2</span><div><h2>다듬기 요청문</h2><p>복사해서 Antigravity에 붙여 넣어 주세요.</p></div></div><div className="revision-prompt"><pre>{prompt}</pre></div><button className="secondary-button full" type="button" onClick={onCopy} disabled={!selected.length && !directText.trim()}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '다듬기 요청문 복사'}</button></section>
+    </div>
+    <div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 이전</button><button className="primary-button" type="button" onClick={onNext}>파일 올리기 <Icon name="arrow" size={17} /></button></div>
+  </main>;
+}
 
-function Upload({ file, validation, preview, uploading, error, onFile, onPublish, onBack }: { file: File | null; validation: Validation | null; preview: string; uploading: boolean; error: string; onFile: (file: File) => void; onPublish: () => void; onBack: () => void }) { const inputRef = useRef<HTMLInputElement>(null); const [dragging, setDragging] = useState(false); return <main className="app-shell upload-shell"><PageHeading eyebrow="PUBLISH / 01 — CHECK AND UPLOAD" title="완성된 index.html을 올려주세요." description="파일을 확인한 뒤 게시하면 충돌 없는 공개 URL과 QR이 발급됩니다." action={<span className="upload-limit"><Icon name="lock" size={14} /> 최대 1MB · HTML 1개</span>} /><div className="upload-layout"><section><button type="button" className={`dropzone ${dragging ? 'is-dragging' : ''} ${file ? 'has-file' : ''}`} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const dropped = event.dataTransfer.files[0]; if (dropped) onFile(dropped); }}><input ref={inputRef} type="file" accept=".html,text/html" hidden onChange={(event) => { const selected = event.target.files?.[0]; if (selected) onFile(selected); }} />{file ? <><span className="file-icon"><Icon name="check" size={24} /></span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB · 다시 선택하려면 클릭</small></> : <><span className="upload-icon"><Icon name="upload" size={25} /></span><strong>index.html 파일을 선택하세요.</strong><small>여기로 파일을 끌어 놓아도 됩니다.</small></>}</button>{validation?.issues.length ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>업로드 전에 수정이 필요합니다.</strong>{validation.issues.map((issue) => <p key={issue}>{issue}</p>)}</div></div> : null}{validation?.warnings.length ? <div className="validation-box warning"><Icon name="warning" size={18} /><div><strong>확인해 주세요.</strong>{validation.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div></div> : null}{error ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>게시 중 문제가 발생했습니다.</strong><p>{error}</p></div></div> : null}</section><section className="preview-card"><div className="preview-head"><div><p className="eyebrow">LIVE PREVIEW</p><h2>브라우저에서 확인</h2></div><div className="preview-modes"><span className="mode-active"><Icon name="desktop" size={14} /> 데스크톱</span><span><Icon name="mobile" size={14} /> 모바일</span></div></div><div className="preview-window"><div className="window-bar"><span /><span /><span /><small>{file ? 'index.html' : '미리보기 대기 중'}</small></div>{preview ? <iframe title="index.html 미리보기" className="preview-frame" sandbox="allow-scripts" srcDoc={preview} /> : <div className="preview-empty"><Icon name="desktop" size={28} /><span>파일을 선택하면<br />여기에 결과가 보입니다.</span></div>}</div></section></div><div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 수정 요청으로 돌아가기</button><button className="primary-button" type="button" disabled={!file || !!validation?.issues.length || uploading} onClick={onPublish}>{uploading ? <><span className="spinner" /> 게시 중…</> : <>게시하고 URL 받기 <Icon name="arrow" size={17} /></>}</button></div></main>; }
+function Upload({ file, validation, preview, uploading, error, onFile, onPublish, onBack }: { file: File | null; validation: Validation | null; preview: string; uploading: boolean; error: string; onFile: (file: File) => void; onPublish: () => void; onBack: () => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  return <main className="app-shell upload-shell">
+    <PageHeading eyebrow="PUBLISH / 01 — CHECK AND UPLOAD" title="완성한 index.html을 올려 주세요." description="미리보기를 확인하고 게시하면 URL과 QR이 만들어집니다." action={<span className="upload-limit"><Icon name="lock" size={14} /> 최대 1MB · HTML 1개</span>} />
+    <div className="upload-layout">
+      <section><button type="button" className={`dropzone ${dragging ? 'is-dragging' : ''} ${file ? 'has-file' : ''}`} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const dropped = event.dataTransfer.files[0]; if (dropped) onFile(dropped); }}><input ref={inputRef} type="file" accept=".html,text/html" hidden onChange={(event) => { const selected = event.target.files?.[0]; if (selected) onFile(selected); }} />{file ? <><span className="file-icon"><Icon name="check" size={24} /></span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB · 바꾸려면 다시 눌러 주세요</small></> : <><span className="upload-icon"><Icon name="upload" size={25} /></span><strong>index.html을 골라 주세요.</strong><small>파일을 이곳으로 끌어와도 돼요.</small></>}</button>{validation?.issues.length ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>파일을 조금 다듬어 주세요.</strong>{validation.issues.map((issue) => <p key={issue}>{issue}</p>)}</div></div> : null}{validation?.warnings.length ? <div className="validation-box warning"><Icon name="warning" size={18} /><div><strong>한 번 확인해 주세요.</strong>{validation.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div></div> : null}{error ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>게시를 이어서 진행해 주세요.</strong><p>{error}</p></div></div> : null}</section>
+      <section className="preview-card"><div className="preview-head"><div><p className="eyebrow">LIVE PREVIEW</p><h2>완성 화면</h2></div><div className="preview-modes"><span className="mode-active"><Icon name="desktop" size={14} /> 데스크톱</span><span><Icon name="mobile" size={14} /> 모바일</span></div></div><div className="preview-window"><div className="window-bar"><span /><span /><span /><small>{file ? 'index.html' : '파일을 기다리는 중'}</small></div>{preview ? <iframe title="index.html 미리보기" className="preview-frame" sandbox="allow-scripts" srcDoc={preview} /> : <div className="preview-empty"><Icon name="desktop" size={28} /><span>파일을 고르면<br />완성 화면이 보여요.</span></div>}</div></section>
+    </div>
+    <div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 다듬기로 돌아가기</button><button className="primary-button" type="button" disabled={!file || !!validation?.issues.length || uploading} onClick={onPublish}>{uploading ? <><span className="spinner" /> 게시 중…</> : <>게시하고 URL 받기 <Icon name="arrow" size={17} /></>}</button></div>
+  </main>;
+}
 
-function Complete({ code, published, qrCode, onOpen, onCopy, copied, onRevise, onReset }: { code: string; published: Published; qrCode: string; onOpen: () => void; onCopy: () => void; copied: boolean; onRevise: () => void; onReset: () => void }) { return <main className="complete-shell"><div className="complete-top"><span className="complete-mark"><Icon name="check" size={21} /></span><p className="eyebrow">BUILD COMPLETE</p><h1>첫 웹페이지가<br /><em>공개되었습니다.</em></h1><p>에이전틱 코딩으로 만든 결과를 휴대폰에서도 확인해 보세요.</p></div><div className="result-card"><div className="result-info"><div className="result-code"><span>BUILDER CODE</span><strong>{code}</strong></div><div className="result-url"><span>PUBLIC RESULT URL</span><a href={published.url} target="_blank" rel="noreferrer">{published.url}<Icon name="external" size={15} /></a><small>이 URL은 {formatDate(published.expiresAt)}까지 열립니다.</small></div><div className="result-actions"><button className="primary-button" type="button" onClick={onOpen}>페이지 열기 <Icon name="external" size={16} /></button><button className="secondary-button" type="button" onClick={onCopy}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : 'URL 복사'}</button></div></div><div className="qr-side"><div className="qr-frame">{qrCode ? <img src={qrCode} alt="공개 결과 URL QR 코드" /> : <div className="qr-placeholder"><span /><span /><span /><span /></div>}</div><p>휴대폰 카메라로<br />스캔해 보세요.</p></div></div><div className="complete-note"><Icon name="lock" size={15} /> 결과물은 별도 도메인의 안전한 미리보기에서 실행되며 7일 뒤 자동 삭제됩니다.</div><div className="complete-actions"><button className="text-button" type="button" onClick={onRevise}><Icon name="refresh" size={16} /> 다시 수정하기</button><button className="text-button" type="button" onClick={onReset}>처음부터 <Icon name="arrow" size={16} /></button></div></main>; }
+function Complete({ code, published, qrCode, onOpen, onCopy, copied, onRevise, onReset }: { code: string; published: Published; qrCode: string; onOpen: () => void; onCopy: () => void; copied: boolean; onRevise: () => void; onReset: () => void }) {
+  return <main className="complete-shell"><div className="complete-top"><span className="complete-mark"><Icon name="check" size={21} /></span><p className="eyebrow">BUILD COMPLETE</p><h1>내 첫 웹페이지가<br /><em>완성됐어요!</em></h1><p>URL이나 QR로 바로 열어 볼 수 있어요.</p></div><div className="result-card"><div className="result-info"><div className="result-code"><span>BUILDER CODE</span><strong>{code}</strong></div><div className="result-url"><span>PUBLIC RESULT URL</span><a href={published.url} target="_blank" rel="noreferrer">{published.url}<Icon name="external" size={15} /></a><small>{formatDate(published.expiresAt)}까지 열 수 있어요.</small></div><div className="result-actions"><button className="primary-button" type="button" onClick={onOpen}>페이지 열기 <Icon name="external" size={16} /></button><button className="secondary-button" type="button" onClick={onCopy}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : 'URL 복사'}</button></div></div><div className="qr-side"><div className="qr-frame">{qrCode ? <img src={qrCode} alt="공개 결과 URL QR 코드" /> : <div className="qr-placeholder"><span /><span /><span /><span /></div>}</div><p>휴대폰 카메라로<br />QR을 비춰 보세요.</p></div></div><div className="complete-note"><Icon name="lock" size={15} /> 결과 페이지는 격리된 화면에서 열리고, 게시 후 7일 동안 유지됩니다.</div><div className="complete-actions"><button className="text-button" type="button" onClick={onRevise}><Icon name="refresh" size={16} /> 더 다듬기</button><button className="text-button" type="button" onClick={onReset}>새로 만들기 <Icon name="arrow" size={16} /></button></div></main>;
+}
 
 export default function Home() {
   const [step, setStep] = useState<Step>('welcome');
@@ -218,7 +350,7 @@ export default function Home() {
   }, []);
   useEffect(() => { if (!published?.url) return; QRCode.toDataURL(published.url, { width: 220, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#14253d', light: '#ffffff' } }).then(setQrCode).catch(() => setQrCode('')); }, [published]);
   const page = pageTypes.find((item) => item.id === selection.pageType); const audience = audiences.find((item) => item.id === selection.audience); const design = designs.find((item) => item.id === selection.design); const selectedFeatureNames = features.filter((item) => selection.features.includes(item.id)).map((item) => item.title);
-  const prompt = useMemo(() => { if (!page || !audience || !design) return ''; return `현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 작업해줘.\n\n[목표]\n${page.goal}\n\n[대상]\n${audience.title}이 주로 사용한다.\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일 화면에서도 읽기 쉽고 터치하기 편하게 만든다.\n\n[기능]\n- ${selectedFeatureNames.length ? selectedFeatureNames.join('\n- ') : '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 조건]\n1. 워크스페이스에 index.html 파일을 직접 생성한다.\n2. HTML, CSS, JavaScript를 모두 index.html 하나에 작성한다.\n3. 외부 CDN, 외부 폰트, 외부 이미지 URL, 서버 API, 로그인 기능을 사용하지 않는다.\n4. npm이나 별도 패키지를 설치하지 않는다.\n5. 현재 워크스페이스 외부의 파일을 수정하지 않는다.\n6. 완성 후 브라우저에서 직접 열어 기능과 화면을 확인한다.\n7. 오류가 있으면 수정한 후 작업 완료 여부를 알려준다.`; }, [audience, design, page, selectedFeatureNames]);
+  const prompt = useMemo(() => { if (!page || !audience || !design) return ''; return `현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 작업해줘.\n\n[목표]\n${page.goal}\n\n[대상]\n${audience.title}이 주로 사용한다.\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일에서도 읽고 누르기 편하게 구성한다.\n\n[기능]\n- ${selectedFeatureNames.length ? selectedFeatureNames.join('\n- ') : '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 방법]\n1. 워크스페이스에 index.html을 만든다.\n2. HTML, CSS, JavaScript를 index.html 하나에 작성한다.\n3. 필요한 코드와 리소스를 모두 index.html 안에 넣는다.\n4. 브라우저 기본 기능만 활용해 완성한다.\n5. 현재 워크스페이스의 index.html만 작성한다.\n6. 브라우저에서 화면과 기능을 확인한다.\n7. 발견한 오류를 고친 뒤 완료 내용을 알려준다.`; }, [audience, design, page, selectedFeatureNames]);
   useEffect(() => {
     if (step !== 'builder' || !prompt) return;
     const panelFoot = document.querySelector('.prompt-panel-foot');
@@ -240,12 +372,12 @@ export default function Home() {
     panelFoot.appendChild(button);
     return () => button.remove();
   }, [prompt, step]);
-  const revisionPrompt = useMemo(() => { const requests = revisionOptions.filter((item) => revisionSelected.includes(item.id)).map((item) => `- ${item.text}`); if (directRevision.trim()) requests.push(`- ${directRevision.trim()}`); return `현재 index.html의 내용과 기능은 유지하면서 다음 사항만 수정해줘.\n\n${requests.length ? requests.join('\n') : '- 화면을 다시 확인하고 가독성과 모바일 대응을 개선한다.'}\n\n수정 후 브라우저에서 다시 확인해줘.`; }, [directRevision, revisionSelected]);
+  const revisionPrompt = useMemo(() => { const requests = revisionOptions.filter((item) => revisionSelected.includes(item.id)).map((item) => `- ${item.text}`); if (directRevision.trim()) requests.push(`- ${directRevision.trim()}`); return `현재 index.html을 바탕으로 아래 부분을 다듬어 줘.\n\n${requests.length ? requests.join('\n') : '- 읽기 편한 화면과 모바일 구성을 한 번 더 살펴봐 줘.'}\n\n다듬은 뒤 브라우저에서 다시 확인해 줘.`; }, [directRevision, revisionSelected]);
   const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setRevisionSelected([]); setDirectRevision(''); setFile(null); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
   const copyPrompt = useCallback(() => { if (!prompt) return; copyToClipboard(prompt).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); }); }, [prompt]);
   const copyRevision = useCallback(() => { copyToClipboard(revisionPrompt).then(() => { setRevisionCopied(true); window.setTimeout(() => setRevisionCopied(false), 1600); }); }, [revisionPrompt]);
-  const handleFile = useCallback(async (selected: File) => { setUploadError(''); setFile(selected); try { const text = await selected.text(); setFileText(text); setValidation(validateHtml(text, selected.name, selected.size)); } catch { setFileText(''); setValidation({ issues: ['파일을 읽을 수 없습니다. 다른 파일을 선택해 주세요.'], warnings: [] }); } }, []);
-  const publish = useCallback(async () => { if (!file || !fileText || validation?.issues.length) return; setUploading(true); setUploadError(''); try { const form = new FormData(); form.append('file', file, 'index.html'); const response = await fetch('/api/pages', { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }, body: form }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data?.error?.message || '잠시 후 다시 시도해 주세요.'); const result = data as Published; setPublished(result); setLatest(result); setStep('complete'); try { window.localStorage.setItem(RESULT_KEY, JSON.stringify(result)); } catch { /* ignore */ } } catch (error) { setUploadError(error instanceof Error ? error.message : '게시 중 문제가 발생했습니다.'); } finally { setUploading(false); } }, [file, fileText, validation]);
+  const handleFile = useCallback(async (selected: File) => { setUploadError(''); setFile(selected); try { const text = await selected.text(); setFileText(text); setValidation(validateHtml(text, selected.name, selected.size)); } catch { setFileText(''); setValidation({ issues: ['파일을 여는 데 시간이 걸렸어요. 다른 파일을 골라 주세요.'], warnings: [] }); } }, []);
+  const publish = useCallback(async () => { if (!file || !fileText || validation?.issues.length) return; setUploading(true); setUploadError(''); try { const form = new FormData(); form.append('file', file, 'index.html'); const response = await fetch('/api/pages', { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }, body: form }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data?.error?.message || '잠시 뒤 게시 버튼을 한 번 더 눌러 주세요.'); const result = data as Published; setPublished(result); setLatest(result); setStep('complete'); try { window.localStorage.setItem(RESULT_KEY, JSON.stringify(result)); } catch { /* ignore */ } } catch (error) { setUploadError(error instanceof Error ? error.message : '게시가 잠시 멈췄어요. 버튼을 한 번 더 눌러 주세요.'); } finally { setUploading(false); } }, [file, fileText, validation]);
   const openLatest = () => { if (latest?.url) window.open(latest.url, '_blank', 'noopener,noreferrer'); }; const openPublished = () => { if (published?.url) window.open(published.url, '_blank', 'noopener,noreferrer'); };
   if (step === 'welcome') return <Welcome builderCode={builderCode} latest={latest} onStart={() => setStep('learn')} onOpenLatest={openLatest} />;
   return <><TopBar step={step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFile={handleFile} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('revise')} onReset={reset} /> : null}</>;

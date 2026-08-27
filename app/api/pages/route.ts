@@ -44,16 +44,16 @@ function checkOrigin(request: Request) { const origin = request.headers.get('Ori
 
 export async function POST(request: Request) {
   const id = requestId();
-  if (!checkOrigin(request)) return errorResponse('ORIGIN_NOT_ALLOWED', '허용되지 않은 요청 출처입니다.', 403, id);
+  if (!checkOrigin(request)) return errorResponse('ORIGIN_NOT_ALLOWED', '현재 교육 사이트에서 다시 열어 주세요.', 403, id);
   const key = request.headers.get('Idempotency-Key')?.trim() || '';
-  if (!/^[A-Za-z0-9._~-]{8,120}$/.test(key)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '게시 요청을 다시 시도해 주세요.', 400, id);
+  if (!/^[A-Za-z0-9._~-]{8,120}$/.test(key)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '게시 버튼을 한 번 더 눌러 주세요.', 400, id);
   const contentLength = Number(request.headers.get('Content-Length') || 0);
   if (contentLength > MAX_BYTES + 24_000) return errorResponse('FILE_TOO_LARGE', '파일 크기는 1MB 이하여야 합니다.', 413, id);
 
   const db = env.DB;
   const files = env.FILES;
   const memoryMode = (!db || !files) && shouldUseMemory();
-  if (!memoryMode && (!db || !files)) return errorResponse('PUBLISH_UNAVAILABLE', '게시 서비스를 준비 중입니다. 잠시 후 다시 시도해 주세요.', 503, id);
+  if (!memoryMode && (!db || !files)) return errorResponse('PUBLISH_UNAVAILABLE', '게시 기능을 준비하고 있어요. 잠시 뒤 버튼을 다시 눌러 주세요.', 503, id);
   if (db) await ensureSchema(db);
 
   const sessionCookie = cookieValue(request.headers.get('Cookie') || '', 'ai_lab_session');
@@ -70,20 +70,20 @@ export async function POST(request: Request) {
     const entries = form.getAll('file');
     if (entries.length !== 1 || !(entries[0] instanceof File)) return errorResponse('FILE_REQUIRED', 'index.html 파일 하나를 선택해 주세요.', 400, id);
     file = entries[0];
-  } catch { return errorResponse('INVALID_MULTIPART', '파일을 읽을 수 없습니다. 다시 선택해 주세요.', 400, id); }
+  } catch { return errorResponse('INVALID_MULTIPART', '파일을 다시 골라 주세요.', 400, id); }
   if (file.size > MAX_BYTES) return errorResponse('FILE_TOO_LARGE', '파일 크기는 1MB 이하여야 합니다.', 413, id);
   const bytes = await file.arrayBuffer();
   let text: string;
   try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { return errorResponse('INVALID_ENCODING', 'UTF-8 형식의 HTML 파일만 올릴 수 있습니다.', 400, id); }
   const digest = await sha256(bytes);
   if (previous) {
-    if (previous.sha256 !== digest) return errorResponse('IDEMPOTENCY_CONFLICT', '같은 게시 요청 키로 다른 파일을 보낼 수 없습니다.', 409, id);
+    if (previous.sha256 !== digest) return errorResponse('IDEMPOTENCY_CONFLICT', '새 게시 요청으로 이어가 주세요.', 409, id);
     return json(JSON.parse(previous.response), 201, { 'Set-Cookie': `ai_lab_session=${sessionToken}; Max-Age=3600; Path=/; Secure; HttpOnly; SameSite=Lax` });
   }
 
   const sessionCount = (memoryMode ? memoryCount('clientHash', clientHash, since) : await countFor(db, 'client_hash', clientHash, since));
   const ipCount = (memoryMode ? memoryCount('ipHash', ipHash, since) : await countFor(db, 'ip_hash', ipHash, since));
-  if (sessionCount >= SESSION_LIMIT || ipCount >= IP_LIMIT) return errorResponse('RATE_LIMITED', '잠시 후 다시 시도해 주세요. 게시 횟수 제한에 도달했습니다.', 429, id);
+  if (sessionCount >= SESSION_LIMIT || ipCount >= IP_LIMIT) return errorResponse('RATE_LIMITED', '잠시 쉬었다가 다시 게시해 주세요.', 429, id);
   const validation = validateHtmlServer(text, file.name, file.size);
   if (validation.issues.length) return errorResponse('HTML_REJECTED', '파일을 확인한 뒤 다시 올려 주세요.', 422, id, validation.issues);
 
@@ -106,7 +106,7 @@ export async function POST(request: Request) {
       pageId = randomId(16);
     }
   }
-  if (!stored) return errorResponse('PUBLISH_FAILED', '게시 중 문제가 발생했습니다. 다시 시도해 주세요.', 503, id);
+  if (!stored) return errorResponse('PUBLISH_FAILED', '게시가 잠시 멈췄어요. 버튼을 한 번 더 눌러 주세요.', 503, id);
   const requestUrl = new URL(request.url);
   const resultOrigin = env.RESULT_ORIGIN || requestUrl.origin;
   const responseBody = { pageId, url: `${resultOrigin.replace(/\/$/, '')}/p/${pageId}`, createdAt: new Date(createdAt).toISOString(), expiresAt: new Date(expiresAt).toISOString() };

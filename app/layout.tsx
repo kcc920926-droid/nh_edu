@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'AI Agentic Coding Lab',
-  description: '코드를 몰라도 AI 에이전트와 함께 첫 웹페이지를 만드는 실습 공간입니다.',
+  description: 'AI와 함께 나만의 첫 웹페이지를 만드는 실습 공간입니다.',
   icons: { icon: '/favicon.svg' },
 };
 
