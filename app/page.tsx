@@ -119,7 +119,7 @@ const slides: LearningSlide[] = [
   },
   {
     kicker: '04 / 요청 만들기',
-    title: '원하는 모습을 네 가지만 알려 주세요.',
+    title: '원하는 모습을 알려주세요',
     body: '페이지 종류, 볼 사람, 꼭 넣을 내용, 원하는 분위기를 고르면 됩니다.',
     stat: '선택할수록 요청이 또렷해져요',
     visual: { layout: 'grid', items: [{ label: '종류', icon: 'dashboard' }, { label: '대상', icon: 'users' }, { label: '내용', icon: 'checklist' }, { label: '분위기', icon: 'palette' }] },
