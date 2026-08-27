@@ -146,14 +146,33 @@ const slides: LearningSlide[] = [
     visual: { layout: 'flow', items: [{ label: '선택하기', icon: 'check' }, { label: '요청문 받기', icon: 'copy' }, { label: '만들기', icon: 'spark' }] },
   },
 ];
-const revisionOptions = [
-  { id: 'larger', title: '글씨를 더 크게', text: '전체 글씨를 조금 더 크게 해 줘.' },
-  { id: 'brighter', title: '색상을 더 밝게', text: '배경과 주요 색상을 밝고 편안하게 바꿔 줘.' },
-  { id: 'button', title: '버튼을 더 눈에 띄게', text: '주요 버튼이 첫 화면에서 잘 보이게 해 줘.' },
-  { id: 'spacing', title: '카드 간격을 넓게', text: '모바일에서 카드 사이 간격을 넉넉하게 해 줘.' },
-  { id: 'shorter', title: '내용을 간결하게', text: '겹치는 문장을 줄이고 핵심만 남겨 줘.' },
-  { id: 'mobile', title: '모바일 화면 개선', text: '작은 화면에서도 읽고 누르기 편하게 바꿔 줘.' },
+const revisionGroups = [
+  { id: 'content', title: '글과 정보', options: [
+    { id: 'larger', title: '글씨를 더 크게', text: '전체 글씨를 조금 더 크게 해 줘.' },
+    { id: 'short-title', title: '제목을 짧게', text: '긴 제목을 짧고 또렷하게 바꿔 줘.' },
+    { id: 'shorter', title: '내용을 간결하게', text: '겹치는 문장을 줄이고 핵심만 남겨 줘.' },
+    { id: 'emphasis', title: '핵심을 더 강조', text: '중요한 숫자와 안내가 먼저 보이게 해 줘.' },
+  ] },
+  { id: 'color', title: '색상과 분위기', options: [
+    { id: 'brighter', title: '색상을 더 밝게', text: '배경과 주요 색상을 밝고 편안하게 바꿔 줘.' },
+    { id: 'contrast', title: '대비를 더 선명하게', text: '글자와 배경의 대비를 높여 내용을 또렷하게 보여 줘.' },
+    { id: 'calmer', title: '색감을 더 차분하게', text: '색상 수를 줄이고 차분한 색조로 정리해 줘.' },
+    { id: 'dark', title: '다크 모드 추가', text: '밝은 화면과 어두운 화면을 전환할 수 있게 해 줘.' },
+  ] },
+  { id: 'layout', title: '배치와 카드', options: [
+    { id: 'spacing', title: '카드 간격을 넓게', text: '카드 사이 간격을 넉넉하게 조정해 줘.' },
+    { id: 'sections', title: '섹션을 또렷하게', text: '제목과 여백을 활용해 각 영역을 분명하게 나눠 줘.' },
+    { id: 'alignment', title: '정렬을 깔끔하게', text: '카드와 글자의 시작선을 맞춰 화면을 정돈해 줘.' },
+    { id: 'first-view', title: '첫 화면을 정리', text: '첫 화면에 핵심 내용과 주요 기능이 보이게 정리해 줘.' },
+  ] },
+  { id: 'usability', title: '버튼과 사용성', options: [
+    { id: 'button', title: '버튼을 더 눈에 띄게', text: '주요 버튼이 첫 화면에서 잘 보이게 해 줘.' },
+    { id: 'mobile', title: '모바일 화면 개선', text: '작은 화면에서도 읽고 누르기 편하게 바꿔 줘.' },
+    { id: 'motion', title: '움직임을 부드럽게', text: '버튼과 카드의 상태 변화를 자연스러운 애니메이션으로 보여 줘.' },
+    { id: 'print', title: '인쇄 화면 추가', text: '핵심 내용만 깔끔하게 출력되는 인쇄 화면을 만들어 줘.' },
+  ] },
 ] as const;
+const revisionOptions = revisionGroups.flatMap((group) => group.options);
 
 function makeBuilderCode() {
   const values = new Uint8Array(4);
@@ -349,9 +368,9 @@ function AgentGuide({ prompt, copied, onCopy, onNext, onBack }: { prompt: string
 function Revision({ selected, setSelected, directText, setDirectText, prompt, copied, onCopy, onNext, onBack }: { selected: string[]; setSelected: React.Dispatch<React.SetStateAction<string[]>>; directText: string; setDirectText: (value: string) => void; prompt: string; copied: boolean; onCopy: () => void; onNext: () => void; onBack: () => void }) {
   const toggle = (id: string) => setSelected((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   return <main className="app-shell">
-    <PageHeading eyebrow="BUILD / 03 — ITERATE ON THE RESULT" title="완성된 화면을 내 취향에 맞게 다듬어 봐요." description="화면을 살펴보고 바꾸고 싶은 부분을 골라 주세요." />
+    <PageHeading eyebrow="BUILD / 03 — ITERATE ON THE RESULT" title="완성된 화면을 내 취향에 맞게 다듬어 봐요." />
     <div className="revision-layout">
-      <section><div className="revision-intro"><span className="number-badge">1</span><div><h2>바꾸고 싶은 부분</h2><p>여러 개를 함께 고를 수 있어요.</p></div></div><div className="revision-options">{revisionOptions.map((item) => <button type="button" className={`revision-option ${selected.includes(item.id) ? 'is-selected' : ''}`} aria-pressed={selected.includes(item.id)} onClick={() => toggle(item.id)} key={item.id}><span className="option-check">{selected.includes(item.id) ? <Icon name="check" size={14} /> : null}</span><span><strong>{item.title}</strong><small>{item.text}</small></span></button>)}</div><label className="direct-request"><span>직접 적기 <small>선택</small></span><textarea value={directText} maxLength={500} onChange={(event) => setDirectText(event.target.value)} placeholder="예: 제목을 조금 더 차분하게 바꿔 줘" /><span className="char-count">{directText.length} / 500</span></label></section>
+      <section><div className="revision-intro"><span className="number-badge">1</span><div><h2>바꾸고 싶은 부분</h2><p>16개 중 여러 개를 함께 고를 수 있어요.</p></div></div><div className="revision-scroll-meta"><span>{selected.length}개 선택</span><span>스크롤해서 더 보기 <Icon name="chevron" size={13} /></span></div><div className="revision-choice-scroll" tabIndex={0} aria-label="화면 다듬기 선택지 16개">{revisionGroups.map((group) => <section className="revision-group" aria-labelledby={`revision-group-${group.id}`} key={group.id}><h3 id={`revision-group-${group.id}`}>{group.title}</h3><div className="revision-options">{group.options.map((item) => <button type="button" className={`revision-option ${selected.includes(item.id) ? 'is-selected' : ''}`} aria-pressed={selected.includes(item.id)} onClick={() => toggle(item.id)} key={item.id}><span className="option-check">{selected.includes(item.id) ? <Icon name="check" size={14} /> : null}</span><span><strong>{item.title}</strong><small>{item.text}</small></span></button>)}</div></section>)}</div><label className="direct-request"><span>직접 적기 <small>선택</small></span><textarea value={directText} maxLength={500} onChange={(event) => setDirectText(event.target.value)} placeholder="예: 제목을 조금 더 차분하게 바꿔 줘" /><span className="char-count">{directText.length} / 500</span></label></section>
       <section className="revision-preview"><div className="preview-label"><span className="number-badge">2</span><div><h2>다듬기 요청문</h2><p>복사해서 Antigravity에 붙여 넣어 주세요.</p></div></div><div className="revision-prompt"><pre>{prompt}</pre></div><button className="secondary-button full" type="button" onClick={onCopy} disabled={!selected.length && !directText.trim()}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '다듬기 요청문 복사'}</button></section>
     </div>
     <div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 이전</button><button className="primary-button" type="button" onClick={onNext}>파일 올리기 <Icon name="arrow" size={17} /></button></div>
