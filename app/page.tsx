@@ -14,6 +14,9 @@ type Validation = { issues: string[]; warnings: string[] };
 type Published = { pageId: string; url: string; createdAt: string; expiresAt: string };
 type LearningVisual = { layout: 'flow' | 'grid' | 'cards'; items: Array<{ label: string; note?: string; icon: IconName }> };
 type LearningSlide = { kicker: string; title: string; body: string; stat: string; visual: LearningVisual };
+type ContextOption = { id: string; title: string; description: string; icon: IconName };
+type FeatureOption = { id: string; title: string; description: string; icon: IconName };
+type FeatureGroup = { id: string; title: string; description: string; mode: 'single' | 'multiple'; max?: number; options: FeatureOption[] };
 
 const MAX_BYTES = 1024 * 1024;
 const BUILDER_KEY = 'ai-lab-builder-code-v1';
@@ -21,17 +24,27 @@ const RESULT_KEY = 'ai-lab-latest-result-v1';
 const SAFE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
 const pageTypes = [
-  { id: 'event', title: '행사·교육 안내', description: '일정과 프로그램을 한눈에 보여주는 안내 페이지', icon: 'calendar' as IconName, goal: '행사 참가자를 위한 일정과 참여 안내 웹페이지를 만든다.', required: ['행사 제목', '일시와 장소', '주요 프로그램', '준비물', '문의 안내'], defaultAudience: 'attendees', defaultDesign: 'friendly', defaultFeatures: ['tabs'] },
-  { id: 'checklist', title: '업무 체크리스트', description: '반복 업무를 단계별로 확인하는 페이지', icon: 'checklist' as IconName, goal: '사내 직원이 업무를 단계별로 확인하고 완료할 수 있는 체크리스트 웹페이지를 만든다.', required: ['업무 목적', '단계별 체크 항목', '주의사항', '완료 상태', '전체 진행률'], defaultAudience: 'employees', defaultDesign: 'work', defaultFeatures: ['check', 'progress'] },
-  { id: 'dashboard', title: '현황 대시보드', description: '핵심 지표와 상태를 빠르게 파악하는 화면', icon: 'dashboard' as IconName, goal: '팀의 주요 현황을 빠르게 파악할 수 있는 업무 대시보드 웹페이지를 만든다.', required: ['주요 지표 카드', '상태별 현황', '간단한 차트', '최근 항목 목록'], defaultAudience: 'employees', defaultDesign: 'cards', defaultFeatures: ['filter', 'chart'] },
+  { id: 'schedule', title: '업무 체크리스트·일정 관리', description: '할 일과 캘린더 일정을 한 화면에서 관리하는 웹', icon: 'calendar' as IconName, goal: '업무 체크리스트와 캘린더를 한 화면에서 관리하는 일정 관리 웹페이지를 만든다.', required: ['샘플 일정 6개 이상', '오늘 할 일 체크리스트', '주간 또는 월간 캘린더', '일정 추가와 완료 처리', '전체 진행률'], contextTitle: '누가 일정을 관리할까요?', contextDescription: '사용 장면에 맞춰 일정과 업무 구성을 바꿉니다.', defaultAudience: 'schedule-personal', defaultDesign: 'work', defaultFeatures: ['schedule-week', 'schedule-check', 'schedule-progress'] },
+  { id: 'wage', title: '아르바이트 시급 계산기', description: '근무 시간과 시급을 입력해 예상 급여를 계산하는 웹', icon: 'dashboard' as IconName, goal: '아르바이트생이 근무 시간과 시급을 입력해 예상 급여를 확인하는 계산기 웹페이지를 만든다.', required: ['시급과 근무 시작·종료 시간 입력', '휴게시간 입력', '총 근무시간 표시', '기본급과 추가수당 계산', '예시 입력값과 초기화 버튼'], contextTitle: '어떤 상황에서 계산할까요?', contextDescription: '사용 상황에 맞춰 입력값과 계산 결과를 구성합니다.', defaultAudience: 'wage-worker', defaultDesign: 'friendly', defaultFeatures: ['wage-daily', 'wage-break', 'wage-night'] },
+  { id: 'inventory', title: '재고 품목 확인 대시보드', description: '테스트 데이터로 수량과 부족 품목을 확인하는 웹', icon: 'dashboard' as IconName, goal: '테스트 데이터가 미리 채워진 재고 품목 확인 대시보드를 만든다.', required: ['샘플 품목 10개 이상', '품목명·카테고리·현재수량·안전재고·상태', '전체·정상·부족 품목 요약 카드', '부족 재고 강조 표시', '검색과 필터', '재고 현황 간단 차트'], contextTitle: '누가 재고를 확인할까요?', contextDescription: '업무 역할에 맞춰 지표와 우선순위를 바꿉니다.', defaultAudience: 'inventory-store', defaultDesign: 'cards', defaultFeatures: ['inventory-table', 'inventory-search', 'inventory-low'] },
 ] as const;
-const audiences = [
-  { id: 'employees', title: '사내 직원', description: '업무 중 바로 사용하는 구성원', icon: 'users' as IconName },
-  { id: 'new-hires', title: '신규 직원', description: '처음 업무를 시작하는 동료', icon: 'user' as IconName },
-  { id: 'customers', title: '고객', description: '서비스를 이용하는 외부 사용자', icon: 'user' as IconName },
-  { id: 'attendees', title: '행사 참가자', description: '일정과 준비물을 확인하는 사람', icon: 'calendar' as IconName },
-  { id: 'public', title: '일반 사용자', description: '누구나 이해해야 하는 방문자', icon: 'link' as IconName },
-] as const;
+const contextOptionsByPage: Record<string, ContextOption[]> = {
+  schedule: [
+    { id: 'schedule-personal', title: '개인 업무', description: '내 할 일과 회의 일정을 함께 관리', icon: 'user' },
+    { id: 'schedule-team', title: '팀 프로젝트', description: '담당자와 마감일을 함께 확인', icon: 'users' },
+    { id: 'schedule-store', title: '매장 근무', description: '교대 일정과 매장 업무를 함께 관리', icon: 'calendar' },
+  ],
+  wage: [
+    { id: 'wage-worker', title: '아르바이트생', description: '내 근무 시간과 예상 급여 확인', icon: 'user' },
+    { id: 'wage-manager', title: '점주·관리자', description: '근무 기록을 바탕으로 급여 확인', icon: 'users' },
+    { id: 'wage-multiple', title: '여러 근무지', description: '근무지별 시급과 시간을 따로 계산', icon: 'link' },
+  ],
+  inventory: [
+    { id: 'inventory-store', title: '매장 직원', description: '판매 현장에서 빠르게 재고 확인', icon: 'user' },
+    { id: 'inventory-warehouse', title: '창고 관리자', description: '입출고와 부족 품목을 한눈에 확인', icon: 'checklist' },
+    { id: 'inventory-buyer', title: '구매 담당자', description: '재주문이 필요한 품목부터 확인', icon: 'users' },
+  ],
+};
 const designs = [
   { id: 'work', title: '깔끔한 업무형', description: '정보를 빠르게 찾는 절제된 레이아웃', icon: 'checklist' as IconName },
   { id: 'friendly', title: '밝고 친근한 스타일', description: '처음 보는 사람도 편안한 화면', icon: 'spark' as IconName },
@@ -39,16 +52,49 @@ const designs = [
   { id: 'cards', title: '카드 중심 대시보드', description: '숫자와 상태를 카드로 정리', icon: 'dashboard' as IconName },
   { id: 'guide', title: '큰 글씨의 안내형', description: '모바일에서도 읽기 쉬운 구성', icon: 'mobile' as IconName },
 ] as const;
-const features = [
-  { id: 'tabs', title: '탭 전환', description: '섹션을 나누어 보여주기', icon: 'chevron' as IconName },
-  { id: 'check', title: '체크리스트', description: '완료 항목을 직접 체크하기', icon: 'checklist' as IconName },
-  { id: 'progress', title: '진행률', description: '완료 비율을 자동 표시하기', icon: 'dashboard' as IconName },
-  { id: 'filter', title: '필터', description: '상태별 항목을 골라 보기', icon: 'link' as IconName },
-  { id: 'dark', title: '다크 모드', description: '밝기 테마를 전환하기', icon: 'wand' as IconName },
-  { id: 'chart', title: '간단한 차트', description: '숫자를 시각적으로 비교하기', icon: 'dashboard' as IconName },
-  { id: 'print', title: '인쇄 버튼', description: '화면을 문서로 출력하기', icon: 'desktop' as IconName },
-  { id: 'motion', title: '부드러운 애니메이션', description: '상태 변화를 자연스럽게 보여주기', icon: 'spark' as IconName },
-] as const;
+const featureGroupsByPage: Record<string, FeatureGroup[]> = {
+  schedule: [
+    { id: 'schedule-view', title: '캘린더 보기', description: '하나만 선택', mode: 'single', options: [
+      { id: 'schedule-week', title: '주간 캘린더', description: '이번 주 일정 중심', icon: 'calendar' },
+      { id: 'schedule-month', title: '월간 캘린더', description: '한 달 일정을 한눈에', icon: 'calendar' },
+      { id: 'schedule-agenda', title: '목록형 일정', description: '가까운 일정부터 표시', icon: 'checklist' },
+    ] },
+    { id: 'schedule-actions', title: '업무 기능', description: '여러 개 선택 · 최대 3개', mode: 'multiple', max: 3, options: [
+      { id: 'schedule-check', title: '완료 체크', description: '업무를 바로 완료 처리', icon: 'check' },
+      { id: 'schedule-progress', title: '진행률', description: '완료 비율 자동 계산', icon: 'dashboard' },
+      { id: 'schedule-add', title: '일정 추가', description: '새 일정 입력 기능', icon: 'calendar' },
+      { id: 'schedule-filter', title: '상태 필터', description: '예정·진행·완료로 보기', icon: 'link' },
+    ] },
+  ],
+  wage: [
+    { id: 'wage-period', title: '급여 기준', description: '하나만 선택', mode: 'single', options: [
+      { id: 'wage-daily', title: '하루 급여', description: '하루 근무 기준 계산', icon: 'dashboard' },
+      { id: 'wage-weekly', title: '주간 급여', description: '일주일 근무를 합산', icon: 'calendar' },
+      { id: 'wage-monthly', title: '월 예상 급여', description: '한 달 예상 금액 표시', icon: 'calendar' },
+    ] },
+    { id: 'wage-options', title: '계산 항목', description: '여러 개 선택 · 최대 3개', mode: 'multiple', max: 3, options: [
+      { id: 'wage-break', title: '휴게시간 제외', description: '쉬는 시간을 자동 차감', icon: 'refresh' },
+      { id: 'wage-night', title: '야간수당', description: '야간 근무 수당 계산', icon: 'wand' },
+      { id: 'wage-weekly-holiday', title: '주휴수당', description: '조건에 따라 수당 표시', icon: 'checklist' },
+      { id: 'wage-history', title: '근무 기록 추가', description: '여러 근무일을 합산', icon: 'calendar' },
+      { id: 'wage-print', title: '결과 인쇄', description: '계산 결과를 출력', icon: 'desktop' },
+    ] },
+  ],
+  inventory: [
+    { id: 'inventory-view', title: '기본 보기', description: '하나만 선택', mode: 'single', options: [
+      { id: 'inventory-table', title: '표 중심', description: '품목을 행으로 비교', icon: 'checklist' },
+      { id: 'inventory-cards', title: '카드 중심', description: '품목 상태를 카드로 확인', icon: 'dashboard' },
+      { id: 'inventory-chart', title: '차트 중심', description: '재고 수량을 시각화', icon: 'dashboard' },
+    ] },
+    { id: 'inventory-tools', title: '확인 도구', description: '여러 개 선택 · 최대 3개', mode: 'multiple', max: 3, options: [
+      { id: 'inventory-search', title: '품목 검색', description: '이름으로 빠르게 찾기', icon: 'link' },
+      { id: 'inventory-category', title: '카테고리 필터', description: '분류별 품목 보기', icon: 'chevron' },
+      { id: 'inventory-low', title: '부족 재고 강조', description: '안전재고 미만을 표시', icon: 'warning' },
+      { id: 'inventory-sort', title: '수량 정렬', description: '많거나 적은 순서로 보기', icon: 'refresh' },
+      { id: 'inventory-restock', title: '재입고 버튼', description: '재입고 상태를 바로 반영', icon: 'check' },
+    ] },
+  ],
+};
 const slides: LearningSlide[] = [
   {
     kicker: '01 / 시작',
@@ -81,9 +127,9 @@ const slides: LearningSlide[] = [
   {
     kicker: '05 / 페이지 고르기',
     title: '오늘 만들 페이지를 골라 보세요.',
-    body: '행사 안내, 업무 체크리스트, 현황 대시보드 중 마음에 드는 하나를 선택합니다.',
+    body: '일정 관리, 시급 계산, 재고 확인 중 오늘 필요한 하나를 선택합니다.',
     stat: '실제로 쓰는 페이지를 만들어요',
-    visual: { layout: 'cards', items: [{ label: '행사 안내', icon: 'calendar' }, { label: '체크리스트', icon: 'checklist' }, { label: '대시보드', icon: 'dashboard' }] },
+    visual: { layout: 'cards', items: [{ label: '일정 관리', icon: 'calendar' }, { label: '시급 계산', icon: 'dashboard' }, { label: '재고 확인', icon: 'checklist' }] },
   },
   {
     kicker: '06 / 다듬기',
@@ -256,15 +302,27 @@ function Learn({ index, setIndex, onNext }: { index: number; setIndex: (value: n
 
 function Builder({ selection, setSelection, prompt, copied, onCopy, onNext }: { selection: Selection; setSelection: React.Dispatch<React.SetStateAction<Selection>>; prompt: string; copied: boolean; onCopy: () => void; onNext: () => void }) {
   const page = pageTypes.find((item) => item.id === selection.pageType);
-  const toggleFeature = (id: string) => setSelection((current) => ({ ...current, features: current.features.includes(id) ? current.features.filter((item) => item !== id) : current.features.length < 3 ? [...current.features, id] : current.features }));
+  const contextOptions = page ? contextOptionsByPage[page.id] ?? [] : [];
+  const featureGroups = page ? featureGroupsByPage[page.id] ?? [] : [];
+  const toggleFeature = (group: FeatureGroup, id: string) => setSelection((current) => {
+    const groupIds = group.options.map((item) => item.id);
+    if (group.mode === 'single') {
+      if (current.features.includes(id)) return current;
+      return { ...current, features: [...current.features.filter((item) => !groupIds.includes(item)), id] };
+    }
+    if (current.features.includes(id)) return { ...current, features: current.features.filter((item) => item !== id) };
+    const selectedInGroup = current.features.filter((item) => groupIds.includes(item)).length;
+    if (selectedInGroup >= (group.max ?? group.options.length)) return current;
+    return { ...current, features: [...current.features, id] };
+  });
   return <main className="app-shell builder-shell">
-    <PageHeading eyebrow="BUILD / 01 — CHOOSE YOUR DIRECTION" title="무엇을 만들어 볼까요?" description="카드를 고르면 Antigravity용 요청문이 바로 완성됩니다." />
+    <PageHeading eyebrow="BUILD / 01 — CHOOSE YOUR DIRECTION" title="무엇을 만들어 볼까요?" />
     <div className="builder-layout">
       <section className="builder-selections">
         <div className="selection-section"><div className="section-heading"><span className="section-index">01</span><div><h2>만들 페이지</h2><p>하나를 골라 주세요.</p></div></div><div className="card-grid page-grid">{pageTypes.map((item) => <SelectionCard key={item.id} selected={selection.pageType === item.id} onClick={() => setSelection({ pageType: item.id, audience: item.defaultAudience, design: item.defaultDesign, features: [...item.defaultFeatures] })} icon={item.icon} title={item.title} description={item.description} />)}</div></div>
-        <div className="selection-section"><div className="section-heading"><span className="section-index">02</span><div><h2>누가 사용할까요?</h2><p>주로 볼 사람을 골라 주세요.</p></div></div><div className="card-grid compact-grid">{audiences.map((item) => <SelectionCard key={item.id} selected={selection.audience === item.id} onClick={() => setSelection((current) => ({ ...current, audience: item.id }))} icon={item.icon} title={item.title} description={item.description} compact />)}</div></div>
+        <div className="selection-section dynamic-context"><div className="section-heading"><span className="section-index">02</span><div><h2>{page?.contextTitle ?? '사용 상황'}</h2><p>{page?.contextDescription ?? '먼저 만들 페이지를 골라 주세요.'}</p></div></div>{page ? <div className="card-grid compact-grid" key={page.id}>{contextOptions.map((item) => <SelectionCard key={item.id} selected={selection.audience === item.id} onClick={() => setSelection((current) => ({ ...current, audience: item.id }))} icon={item.icon} title={item.title} description={item.description} compact />)}</div> : <div className="context-empty"><Icon name="arrow" size={18} /><span>01에서 주제를 고르면 맞춤 선택지가 열려요.</span></div>}</div>
         <div className="selection-section"><div className="section-heading"><span className="section-index">03</span><div><h2>어떤 느낌이 좋을까요?</h2><p>마음에 드는 화면 분위기를 골라 주세요.</p></div></div><div className="card-grid compact-grid">{designs.map((item) => <SelectionCard key={item.id} selected={selection.design === item.id} onClick={() => setSelection((current) => ({ ...current, design: item.id }))} icon={item.icon} title={item.title} description={item.description} compact />)}</div></div>
-        <div className="selection-section"><div className="section-heading"><span className="section-index">04</span><div><h2>더할 기능 <small>최대 3개</small></h2><p>원하는 기능을 골라 주세요.</p></div></div><div className="feature-grid">{features.map((item) => <button type="button" className={`feature-chip ${selection.features.includes(item.id) ? 'is-selected' : ''}`} aria-pressed={selection.features.includes(item.id)} onClick={() => toggleFeature(item.id)} key={item.id}><Icon name={item.icon} size={17} /><span>{item.title}</span>{selection.features.includes(item.id) ? <Icon name="check" size={15} /> : null}</button>)}</div></div>
+        <div className="selection-section"><div className="section-heading"><span className="section-index">04</span><div><h2>기능 구성</h2><p>선택 방식이 다른 기능을 구역별로 나눴어요.</p></div></div>{page ? <div className="feature-sectors">{featureGroups.map((group) => <div className={`feature-sector is-${group.mode}`} key={group.id}><div className="feature-sector-head"><strong>{group.title}</strong><span>{group.description}</span></div><div className="feature-grid" role={group.mode === 'single' ? 'radiogroup' : 'group'} aria-label={group.title}>{group.options.map((item) => { const selected = selection.features.includes(item.id); return <button type="button" role={group.mode === 'single' ? 'radio' : undefined} aria-checked={group.mode === 'single' ? selected : undefined} aria-pressed={group.mode === 'multiple' ? selected : undefined} className={`feature-chip ${selected ? 'is-selected' : ''}`} onClick={() => toggleFeature(group, item.id)} key={item.id}><Icon name={item.icon} size={17} /><span><strong>{item.title}</strong><small>{item.description}</small></span>{selected ? <Icon name="check" size={15} /> : null}</button>; })}</div></div>)}</div> : <div className="context-empty"><Icon name="arrow" size={18} /><span>주제를 고르면 필요한 기능이 나타나요.</span></div>}</div>
       </section>
       <aside className="prompt-panel"><div className="prompt-panel-head"><div><p className="eyebrow">LIVE PROMPT</p><h2>완성된 요청문</h2></div><span className={`prompt-ready ${page ? 'is-ready' : ''}`}><span />{page ? '준비 완료' : '페이지 선택'}</span></div><div className="prompt-preview">{page ? <pre>{prompt}</pre> : <div className="prompt-empty"><Icon name="wand" size={28} /><strong>페이지를 고르면<br />요청문이 완성돼요.</strong><small>왼쪽 카드에서 시작해 주세요.</small></div>}</div><div className="prompt-panel-foot"><button className="secondary-button full" type="button" onClick={onCopy} disabled={!page}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '요청문 복사'}</button><p><Icon name="lock" size={13} /> 선택 내용은 이 브라우저에서만 다룹니다.</p></div></aside>
     </div>
@@ -349,8 +407,14 @@ export default function Home() {
     return () => window.clearTimeout(handle);
   }, []);
   useEffect(() => { if (!published?.url) return; QRCode.toDataURL(published.url, { width: 220, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#14253d', light: '#ffffff' } }).then(setQrCode).catch(() => setQrCode('')); }, [published]);
-  const page = pageTypes.find((item) => item.id === selection.pageType); const audience = audiences.find((item) => item.id === selection.audience); const design = designs.find((item) => item.id === selection.design); const selectedFeatureNames = features.filter((item) => selection.features.includes(item.id)).map((item) => item.title);
-  const prompt = useMemo(() => { if (!page || !audience || !design) return ''; return `현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 작업해줘.\n\n[목표]\n${page.goal}\n\n[대상]\n${audience.title}이 주로 사용한다.\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일에서도 읽고 누르기 편하게 구성한다.\n\n[기능]\n- ${selectedFeatureNames.length ? selectedFeatureNames.join('\n- ') : '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 방법]\n1. 워크스페이스에 index.html을 만든다.\n2. HTML, CSS, JavaScript를 index.html 하나에 작성한다.\n3. 필요한 코드와 리소스를 모두 index.html 안에 넣는다.\n4. 브라우저 기본 기능만 활용해 완성한다.\n5. 현재 워크스페이스의 index.html만 작성한다.\n6. 브라우저에서 화면과 기능을 확인한다.\n7. 발견한 오류를 고친 뒤 완료 내용을 알려준다.`; }, [audience, design, page, selectedFeatureNames]);
+  const page = pageTypes.find((item) => item.id === selection.pageType);
+  const contextOptions = page ? contextOptionsByPage[page.id] ?? [] : [];
+  const audience = contextOptions.find((item) => item.id === selection.audience);
+  const design = designs.find((item) => item.id === selection.design);
+  const currentFeatureGroups = page ? featureGroupsByPage[page.id] ?? [] : [];
+  const selectedFeatureNames = currentFeatureGroups.flatMap((group) => group.options).filter((item) => selection.features.includes(item.id)).map((item) => item.title);
+  const selectedFeatureText = selectedFeatureNames.join('\n- ');
+  const prompt = useMemo(() => { if (!page || !audience || !design) return ''; return `현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 작업해줘.\n\n[목표]\n${page.goal}\n\n[사용 상황]\n${audience.title}: ${audience.description}\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일에서도 읽고 누르기 편하게 구성한다.\n\n[기능]\n- ${selectedFeatureText || '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 방법]\n1. 워크스페이스에 index.html을 만든다.\n2. HTML, CSS, JavaScript를 index.html 하나에 작성한다.\n3. 필요한 코드와 리소스를 모두 index.html 안에 넣는다.\n4. 브라우저 기본 기능만 활용해 완성한다.\n5. 현재 워크스페이스의 index.html만 작성한다.\n6. 브라우저에서 화면과 기능을 확인한다.\n7. 발견한 오류를 고친 뒤 완료 내용을 알려준다.`; }, [audience, design, page, selectedFeatureText]);
   useEffect(() => {
     if (step !== 'builder' || !prompt) return;
     const panelFoot = document.querySelector('.prompt-panel-foot');
