@@ -133,7 +133,7 @@ const slides: LearningSlide[] = [
   },
   {
     kicker: '06 / 다듬기',
-    title: '만들고 보고, 마음에 들게 다듬어요.',
+    title: '마음에 들게 다듬어요',
     body: '글씨, 색상, 간격을 살펴보고 원하는 부분을 한 번 더 요청합니다.',
     stat: '확인하고 고치면 더 좋아져요',
     visual: { layout: 'flow', items: [{ label: '선택', icon: 'palette' }, { label: '생성', icon: 'wand' }, { label: '수정', icon: 'refresh' }, { label: '게시', icon: 'upload' }] },
