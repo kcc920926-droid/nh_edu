@@ -140,8 +140,8 @@ const slides: LearningSlide[] = [
   },
   {
     kicker: '07 / 실습 시작',
-    title: '이제 내 페이지를 시작해 볼까요?',
-    body: '몇 가지를 고르면 Antigravity에 바로 보낼 요청문이 완성됩니다.',
+    title: '자! 시작해볼까요?',
+    body: '몇 가지를 골라서 AI 에이전트에게 요청해 봅시다',
     stat: '준비되면 바로 시작해요!',
     visual: { layout: 'flow', items: [{ label: '선택하기', icon: 'check' }, { label: '요청문 받기', icon: 'copy' }, { label: '만들기', icon: 'spark' }] },
   },
