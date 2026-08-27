@@ -314,7 +314,35 @@ function Learn({ index, setIndex, onNext }: { index: number; setIndex: (value: n
   </main>;
 }
 
-function Builder({ selection, setSelection, prompt, copied, onCopy, onNext }: { selection: Selection; setSelection: React.Dispatch<React.SetStateAction<Selection>>; prompt: string; copied: boolean; onCopy: () => void; onNext: () => void }) {
+function PromptEditorModal({ open, value, edited, onChange, onClose, onSave, onReset }: { open: boolean; value: string; edited: boolean; onChange: (value: string) => void; onClose: () => void; onSave: () => void; onReset: () => void }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    const focusFrame = window.requestAnimationFrame(() => textareaRef.current?.focus());
+    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
+  }, [onClose, open]);
+  if (!open) return null;
+  return <div className="prompt-editor-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="prompt-editor-modal" role="dialog" aria-modal="true" aria-labelledby="prompt-editor-title" aria-describedby="prompt-editor-description">
+      <div className="prompt-editor-head"><div><p className="eyebrow">EDIT PROMPT</p><h2 id="prompt-editor-title">요청문 직접 수정</h2><p id="prompt-editor-description">저장한 내용은 복사와 다음 단계에 그대로 사용됩니다.</p></div><button className="text-button" type="button" onClick={onClose}>닫기</button></div>
+      <label className="prompt-editor-field"><span>요청문</span><textarea ref={textareaRef} value={value} maxLength={10000} spellCheck={false} onChange={(event) => onChange(event.target.value)} /></label>
+      <div className="prompt-editor-meta"><span>{value.length.toLocaleString('ko-KR')}자</span><span>내용을 비우면 저장할 수 없습니다.</span></div>
+      <div className="prompt-editor-actions"><button className="text-button prompt-editor-reset" type="button" disabled={!edited} onClick={onReset}><Icon name="refresh" size={15} /> 자동 생성문으로 되돌리기</button><span /><button className="secondary-button" type="button" onClick={onClose}>취소</button><button className="primary-button" type="button" disabled={!value.trim()} onClick={onSave}>저장</button></div>
+    </section>
+  </div>;
+}
+
+function Builder({ selection, setSelection, prompt, copied, onCopy, onEditPrompt, onNext }: { selection: Selection; setSelection: React.Dispatch<React.SetStateAction<Selection>>; prompt: string; copied: boolean; onCopy: () => void; onEditPrompt: () => void; onNext: () => void }) {
   const page = pageTypes.find((item) => item.id === selection.pageType);
   const contextOptions = page ? contextOptionsByPage[page.id] ?? [] : [];
   const featureGroups = page ? featureGroupsByPage[page.id] ?? [] : [];
@@ -338,7 +366,7 @@ function Builder({ selection, setSelection, prompt, copied, onCopy, onNext }: { 
         <div className="selection-section"><div className="section-heading"><span className="section-index">03</span><div><h2>어떤 느낌이 좋을까요?</h2><p>마음에 드는 화면 분위기를 골라 주세요.</p></div></div><div className="card-grid compact-grid">{designs.map((item) => <SelectionCard key={item.id} selected={selection.design === item.id} onClick={() => setSelection((current) => ({ ...current, design: item.id }))} icon={item.icon} title={item.title} description={item.description} compact />)}</div></div>
         <div className="selection-section"><div className="section-heading"><span className="section-index">04</span><div><h2>기능 구성</h2><p>선택 방식이 다른 기능을 구역별로 나눴어요.</p></div></div>{page ? <div className="feature-sectors">{featureGroups.map((group) => <div className={`feature-sector is-${group.mode}`} key={group.id}><div className="feature-sector-head"><strong>{group.title}</strong><span>{group.description}</span></div><div className="feature-grid" role={group.mode === 'single' ? 'radiogroup' : 'group'} aria-label={group.title}>{group.options.map((item) => { const selected = selection.features.includes(item.id); return <button type="button" role={group.mode === 'single' ? 'radio' : undefined} aria-checked={group.mode === 'single' ? selected : undefined} aria-pressed={group.mode === 'multiple' ? selected : undefined} className={`feature-chip ${selected ? 'is-selected' : ''}`} onClick={() => toggleFeature(group, item.id)} key={item.id}><Icon name={item.icon} size={17} /><span><strong>{item.title}</strong><small>{item.description}</small></span>{selected ? <Icon name="check" size={15} /> : null}</button>; })}</div></div>)}</div> : <div className="context-empty"><Icon name="arrow" size={18} /><span>주제를 고르면 필요한 기능이 나타나요.</span></div>}</div>
       </section>
-      <aside className="prompt-panel"><div className="prompt-panel-head"><div><p className="eyebrow">LIVE PROMPT</p><h2>완성된 요청문</h2></div><span className={`prompt-ready ${page ? 'is-ready' : ''}`}><span />{page ? '준비 완료' : '페이지 선택'}</span></div><div className="prompt-preview">{page ? <pre>{prompt}</pre> : <div className="prompt-empty"><Icon name="wand" size={28} /><strong>페이지를 고르면<br />요청문이 완성돼요.</strong><small>왼쪽 카드에서 시작해 주세요.</small></div>}</div><div className="prompt-panel-foot"><button className="secondary-button full" type="button" onClick={onCopy} disabled={!page}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '요청문 복사'}</button><p><Icon name="lock" size={13} /> 선택 내용은 이 브라우저에서만 다룹니다.</p></div></aside>
+      <aside className="prompt-panel"><div className="prompt-panel-head"><div><p className="eyebrow">LIVE PROMPT</p><h2>완성된 요청문</h2></div><span className={`prompt-ready ${page ? 'is-ready' : ''}`}><span />{page ? '준비 완료' : '페이지 선택'}</span></div><div className="prompt-preview">{page ? <pre>{prompt}</pre> : <div className="prompt-empty"><Icon name="wand" size={28} /><strong>페이지를 고르면<br />요청문이 완성돼요.</strong><small>왼쪽 카드에서 시작해 주세요.</small></div>}</div><div className="prompt-panel-foot"><button className="secondary-button full" type="button" onClick={onCopy} disabled={!page}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '요청문 복사'}</button><p><Icon name="lock" size={13} /> 선택 내용은 이 브라우저에서만 다룹니다.</p><button className="text-button direct-edit-button" type="button" disabled={!page} onClick={onEditPrompt}>직접 수정</button></div></aside>
     </div>
     <div className="sticky-actions"><button className="text-button" type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>맨 위로</button><button className="primary-button" type="button" disabled={!page} onClick={onNext}>요청문 확인하기 <Icon name="arrow" size={17} /></button></div>
   </main>;
@@ -395,6 +423,9 @@ export default function Home() {
   const [latest, setLatest] = useState<Published | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const [selection, setSelection] = useState<Selection>({ pageType: '', audience: '', design: '', features: [] });
+  const [promptOverride, setPromptOverride] = useState<{ source: string; value: string } | null>(null);
+  const [promptEditorOpen, setPromptEditorOpen] = useState(false);
+  const [promptDraft, setPromptDraft] = useState('');
   const [copied, setCopied] = useState(false);
   const [revisionCopied, setRevisionCopied] = useState(false);
   const [revisionSelected, setRevisionSelected] = useState<string[]>([]);
@@ -428,35 +459,20 @@ export default function Home() {
   const currentFeatureGroups = page ? featureGroupsByPage[page.id] ?? [] : [];
   const selectedFeatureNames = currentFeatureGroups.flatMap((group) => group.options).filter((item) => selection.features.includes(item.id)).map((item) => item.title);
   const selectedFeatureText = selectedFeatureNames.join('\n- ');
-  const prompt = useMemo(() => { if (!page || !audience || !design) return ''; return `현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 작업해줘.\n\n[목표]\n${page.goal}\n\n[사용 상황]\n${audience.title}: ${audience.description}\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일에서도 읽고 누르기 편하게 구성한다.\n\n[기능]\n- ${selectedFeatureText || '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 방법]\n1. 워크스페이스에 index.html을 만든다.\n2. HTML, CSS, JavaScript를 index.html 하나에 작성한다.\n3. 필요한 코드와 리소스를 모두 index.html 안에 넣는다.\n4. 브라우저 기본 기능만 활용해 완성한다.\n5. 현재 워크스페이스의 index.html만 작성한다.\n6. 브라우저에서 화면과 기능을 확인한다.\n7. 발견한 오류를 고친 뒤 완료 내용을 알려준다.`; }, [audience, design, page, selectedFeatureText]);
-  useEffect(() => {
-    if (step !== 'builder' || !prompt) return;
-    const panelFoot = document.querySelector('.prompt-panel-foot');
-    if (!panelFoot || panelFoot.querySelector('[data-direct-edit]')) return;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'text-button direct-edit-button';
-    button.dataset.directEdit = 'true';
-    button.textContent = '직접 수정';
-    button.addEventListener('click', () => {
-      const edited = window.prompt('Antigravity에 보낼 프롬프트를 직접 수정하세요.', prompt);
-      if (edited?.trim() && edited !== prompt) {
-        void copyToClipboard(edited).then(() => {
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1600);
-        });
-      }
-    });
-    panelFoot.appendChild(button);
-    return () => button.remove();
-  }, [prompt, step]);
+  const generatedPrompt = useMemo(() => { if (!page || !audience || !design) return ''; return `현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 작업해줘.\n\n[목표]\n${page.goal}\n\n[사용 상황]\n${audience.title}: ${audience.description}\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일에서도 읽고 누르기 편하게 구성한다.\n\n[기능]\n- ${selectedFeatureText || '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 방법]\n1. 워크스페이스에 index.html을 만든다.\n2. HTML, CSS, JavaScript를 index.html 하나에 작성한다.\n3. 필요한 코드와 리소스를 모두 index.html 안에 넣는다.\n4. 브라우저 기본 기능만 활용해 완성한다.\n5. 현재 워크스페이스의 index.html만 작성한다.\n6. 브라우저에서 화면과 기능을 확인한다.\n7. 발견한 오류를 고친 뒤 완료 내용을 알려준다.`; }, [audience, design, page, selectedFeatureText]);
+  const promptEdited = promptOverride?.source === generatedPrompt;
+  const prompt = promptOverride?.source === generatedPrompt ? promptOverride.value : generatedPrompt;
   const revisionPrompt = useMemo(() => { const requests = revisionOptions.filter((item) => revisionSelected.includes(item.id)).map((item) => `- ${item.text}`); if (directRevision.trim()) requests.push(`- ${directRevision.trim()}`); return `현재 index.html을 바탕으로 아래 부분을 다듬어 줘.\n\n${requests.length ? requests.join('\n') : '- 읽기 편한 화면과 모바일 구성을 한 번 더 살펴봐 줘.'}\n\n다듬은 뒤 브라우저에서 다시 확인해 줘.`; }, [directRevision, revisionSelected]);
-  const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setRevisionSelected([]); setDirectRevision(''); setFile(null); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
+  const closePromptEditor = useCallback(() => setPromptEditorOpen(false), []);
+  const openPromptEditor = useCallback(() => { if (!prompt) return; setPromptDraft(prompt); setPromptEditorOpen(true); }, [prompt]);
+  const savePromptEditor = useCallback(() => { const value = promptDraft.trim(); if (!value) return; setPromptOverride({ source: generatedPrompt, value }); setPromptDraft(value); setPromptEditorOpen(false); }, [generatedPrompt, promptDraft]);
+  const resetPromptEditor = useCallback(() => { setPromptOverride(null); setPromptDraft(generatedPrompt); }, [generatedPrompt]);
+  const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setPromptOverride(null); setPromptEditorOpen(false); setPromptDraft(''); setRevisionSelected([]); setDirectRevision(''); setFile(null); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
   const copyPrompt = useCallback(() => { if (!prompt) return; copyToClipboard(prompt).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); }); }, [prompt]);
   const copyRevision = useCallback(() => { copyToClipboard(revisionPrompt).then(() => { setRevisionCopied(true); window.setTimeout(() => setRevisionCopied(false), 1600); }); }, [revisionPrompt]);
   const handleFile = useCallback(async (selected: File) => { setUploadError(''); setFile(selected); try { const text = await selected.text(); setFileText(text); setValidation(validateHtml(text, selected.name, selected.size)); } catch { setFileText(''); setValidation({ issues: ['파일을 여는 데 시간이 걸렸어요. 다른 파일을 골라 주세요.'], warnings: [] }); } }, []);
   const publish = useCallback(async () => { if (!file || !fileText || validation?.issues.length) return; setUploading(true); setUploadError(''); try { const form = new FormData(); form.append('file', file, 'index.html'); const response = await fetch('/api/pages', { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }, body: form }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data?.error?.message || '잠시 뒤 게시 버튼을 한 번 더 눌러 주세요.'); const result = data as Published; setPublished(result); setLatest(result); setStep('complete'); try { window.localStorage.setItem(RESULT_KEY, JSON.stringify(result)); } catch { /* ignore */ } } catch (error) { setUploadError(error instanceof Error ? error.message : '게시가 잠시 멈췄어요. 버튼을 한 번 더 눌러 주세요.'); } finally { setUploading(false); } }, [file, fileText, validation]);
   const openLatest = () => { if (latest?.url) window.open(latest.url, '_blank', 'noopener,noreferrer'); }; const openPublished = () => { if (published?.url) window.open(published.url, '_blank', 'noopener,noreferrer'); };
   if (step === 'welcome') return <Welcome builderCode={builderCode} latest={latest} onStart={() => setStep('learn')} onOpenLatest={openLatest} />;
-  return <><TopBar step={step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFile={handleFile} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('revise')} onReset={reset} /> : null}</>;
+  return <><TopBar step={step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onEditPrompt={openPromptEditor} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFile={handleFile} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('revise')} onReset={reset} /> : null}<PromptEditorModal open={promptEditorOpen} value={promptDraft} edited={promptEdited} onChange={setPromptDraft} onClose={closePromptEditor} onSave={savePromptEditor} onReset={resetPromptEditor} /></>;
 }
