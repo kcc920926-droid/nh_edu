@@ -12,7 +12,7 @@ type IconName =
 type Selection = { pageType: string; audience: string; design: string; features: string[] };
 type Validation = { issues: string[]; warnings: string[] };
 type Published = { pageId: string; url: string; createdAt: string; expiresAt: string };
-type LearningVisual = { layout: 'flow' | 'grid' | 'cards'; items: Array<{ label: string; note?: string; icon: IconName }> };
+type LearningVisual = { layout: 'flow' | 'grid' | 'cards'; iconsOnly?: boolean; items: Array<{ label: string; note?: string; icon: IconName }> };
 type LearningSlide = { kicker: string; title: string; body: string; stat: string; visual: LearningVisual };
 type ContextOption = { id: string; title: string; description: string; icon: IconName };
 type FeatureOption = { id: string; title: string; description: string; icon: IconName };
@@ -126,10 +126,10 @@ const slides: LearningSlide[] = [
   },
   {
     kicker: '05 / 페이지 고르기',
-    title: '오늘 만들 페이지를 골라 보세요.',
+    title: '만들 페이지를 고르세요',
     body: '일정 관리, 시급 계산, 재고 확인 중 오늘 필요한 하나를 선택합니다.',
     stat: '실제로 쓰는 페이지를 만들어요',
-    visual: { layout: 'cards', items: [{ label: '일정 관리', icon: 'calendar' }, { label: '시급 계산', icon: 'dashboard' }, { label: '재고 확인', icon: 'checklist' }] },
+    visual: { layout: 'cards', iconsOnly: true, items: [{ label: '일정 관리', icon: 'calendar' }, { label: '시급 계산', icon: 'dashboard' }, { label: '재고 확인', icon: 'checklist' }] },
   },
   {
     kicker: '06 / 다듬기',
@@ -252,13 +252,13 @@ function PageHeading({ eyebrow, title, description, action }: { eyebrow: string;
 function SelectionCard({ selected, onClick, icon, title, description, compact = false }: { selected: boolean; onClick: () => void; icon: IconName; title: string; description: string; compact?: boolean }) { return <button type="button" className={`selection-card ${compact ? 'is-compact' : ''} ${selected ? 'is-selected' : ''}`} aria-pressed={selected} onClick={onClick}><span className="card-icon"><Icon name={icon} /></span><span className="card-copy"><strong>{title}</strong><small>{description}</small></span><span className="card-check">{selected ? <Icon name="check" size={16} /> : null}</span></button>; }
 
 function LearningDiagram({ visual, title }: { visual: LearningVisual; title: string }) {
-  return <div className={`learning-diagram is-${visual.layout}`} role="img" aria-label={`${title} 핵심 흐름`}>
-    <span className="diagram-label">한눈에 보기</span>
+  return <div className={`learning-diagram is-${visual.layout} ${visual.iconsOnly ? 'is-icons-only' : ''}`} role="img" aria-label={`${title} 핵심 흐름`}>
+    {!visual.iconsOnly ? <span className="diagram-label">한눈에 보기</span> : null}
     <div className="diagram-items">
       {visual.items.map((item) => <div className="diagram-item" key={item.label}>
         <span className="diagram-icon"><Icon name={item.icon} size={23} /></span>
-        <strong>{item.label}</strong>
-        {item.note ? <small>{item.note}</small> : null}
+        {!visual.iconsOnly ? <strong>{item.label}</strong> : null}
+        {!visual.iconsOnly && item.note ? <small>{item.note}</small> : null}
       </div>)}
     </div>
   </div>;

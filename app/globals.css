@@ -104,6 +104,8 @@ h1, h2, p { margin-top: 0; }
 .learning-diagram.is-grid .diagram-icon { width: 42px; height: 42px; border-radius: 14px; margin-bottom: 8px; }
 .learning-diagram.is-cards .diagram-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 13px; }
 .learning-diagram.is-cards .diagram-item { min-height: 146px; padding: 18px 10px 14px; border-radius: 20px; background: rgba(255,255,255,.35); box-shadow: inset 2px 2px 5px rgba(255,255,255,.5), inset -2px -2px 5px rgba(126,140,171,.08); }
+.learning-diagram.is-icons-only .diagram-item { justify-content: center; }
+.learning-diagram.is-icons-only .diagram-icon { width: 68px; height: 68px; margin-bottom: 0; border-radius: 22px; }
 .slide-dots { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 25px; }
 .slide-dots button { border: 0; background: #d1dae3; width: 7px; height: 7px; border-radius: 9px; padding: 0; transition: .2s; }
 .slide-dots button.is-active { background: var(--blue); width: 25px; }
