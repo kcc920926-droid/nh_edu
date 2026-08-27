@@ -108,8 +108,7 @@ export async function POST(request: Request) {
   }
   if (!stored) return errorResponse('PUBLISH_FAILED', '게시 중 문제가 발생했습니다. 다시 시도해 주세요.', 503, id);
   const requestUrl = new URL(request.url);
-  const localHost = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
-  const resultOrigin = env.RESULT_ORIGIN || (localHost ? requestUrl.origin : 'https://result.example-static.com');
+  const resultOrigin = env.RESULT_ORIGIN || requestUrl.origin;
   const responseBody = { pageId, url: `${resultOrigin.replace(/\/$/, '')}/p/${pageId}`, createdAt: new Date(createdAt).toISOString(), expiresAt: new Date(expiresAt).toISOString() };
   const responseJson = JSON.stringify(responseBody);
   try {
