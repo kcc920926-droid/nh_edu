@@ -142,7 +142,36 @@ function TopBar({ step, onReset }: { step: Step; onReset: () => void }) {
 function PageHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) { return <div className="page-heading"><div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1><p className="lead">{description}</p></div>{action}</div>; }
 function SelectionCard({ selected, onClick, icon, title, description, compact = false }: { selected: boolean; onClick: () => void; icon: IconName; title: string; description: string; compact?: boolean }) { return <button type="button" className={`selection-card ${compact ? 'is-compact' : ''} ${selected ? 'is-selected' : ''}`} aria-pressed={selected} onClick={onClick}><span className="card-icon"><Icon name={icon} /></span><span className="card-copy"><strong>{title}</strong><small>{description}</small></span><span className="card-check">{selected ? <Icon name="check" size={16} /> : null}</span></button>; }
 
-function Welcome({ builderCode, latest, onStart, onOpenLatest }: { builderCode: string; latest: Published | null; onStart: () => void; onOpenLatest: () => void }) { return <main className="welcome-shell"><div className="welcome-grid"><section className="welcome-copy"><p className="eyebrow">FIRST AGENTIC BUILD / 40 MIN LAB</p><h1>코드를 몰라도,<br /><em>AI와 함께</em> 웹페이지를 만들 수 있습니다.</h1><p className="welcome-lead">목표를 고르고, 요청을 복사하고, 에이전트가 만든 파일을 직접 확인해 보세요.</p><div className="builder-badge"><span className="badge-label">YOUR BUILDER CODE</span><strong>{builderCode}</strong><small>Your first agentic build</small></div><button className="primary-button large" type="button" onClick={onStart}>실습 시작하기 <Icon name="arrow" size={19} /></button>{latest ? <button className="latest-link" type="button" onClick={onOpenLatest}><Icon name="link" size={15} /> 최근 게시 결과 열기 <span>{formatDate(latest.createdAt)}</span></button> : null}</section><section className="welcome-panel" aria-label="실습 흐름"><div className="panel-label">TODAY&apos;S FLOW</div><div className="flow-list"><div className="flow-item"><span>01</span><Icon name="palette" /><div><strong>선택</strong><small>만들 페이지와 분위기를 고릅니다.</small></div></div><div className="flow-line" /><div className="flow-item"><span>02</span><Icon name="wand" /><div><strong>생성</strong><small>Antigravity가 index.html을 만듭니다.</small></div></div><div className="flow-line" /><div className="flow-item"><span>03</span><Icon name="upload" /><div><strong>게시</strong><small>URL과 QR로 결과를 공유합니다.</small></div></div></div><div className="panel-note"><Icon name="lock" size={16} /><span>가입 없음 · 이름 수집 없음 · 결과물은 7일 뒤 자동 삭제</span></div></section></div><div className="welcome-footer"><span>AI AGENTIC CODING LAB</span><span>새로운 방식으로 만드는 첫 웹페이지</span></div></main>; }
+function Welcome({ builderCode, latest, onStart, onOpenLatest }: { builderCode: string; latest: Published | null; onStart: () => void; onOpenLatest: () => void }) {
+  return <main className="welcome-shell">
+    <div className="clay-orb clay-orb-one" aria-hidden="true" />
+    <div className="clay-orb clay-orb-two" aria-hidden="true" />
+    <div className="welcome-grid">
+      <section className="welcome-copy">
+        <p className="eyebrow">FIRST AGENTIC BUILD / 40 MIN LAB</p>
+        <h1><em>AI와 만드는</em><br />첫 웹페이지.</h1>
+        <div className="builder-badge">
+          <span className="badge-label">YOUR BUILDER CODE</span>
+          <strong>{builderCode}</strong>
+          <small>Your first agentic build</small>
+        </div>
+        <button className="primary-button large" type="button" onClick={onStart}>실습 시작하기 <Icon name="arrow" size={19} /></button>
+        {latest ? <button className="latest-link" type="button" onClick={onOpenLatest}><Icon name="link" size={15} /> 최근 게시 결과 열기 <span>{formatDate(latest.createdAt)}</span></button> : null}
+      </section>
+      <section className="welcome-panel" aria-label="실습 흐름">
+        <div className="panel-label">TODAY&apos;S FLOW</div>
+        <div className="flow-list">
+          <div className="flow-item"><span>01</span><span className="flow-icon"><Icon name="palette" /></span><div><strong>선택</strong><small>만들 페이지와 분위기를 고릅니다.</small></div></div>
+          <div className="flow-line" />
+          <div className="flow-item"><span>02</span><span className="flow-icon"><Icon name="wand" /></span><div><strong>생성</strong><small>Antigravity가 index.html을 만듭니다.</small></div></div>
+          <div className="flow-line" />
+          <div className="flow-item"><span>03</span><span className="flow-icon"><Icon name="upload" /></span><div><strong>게시</strong><small>URL과 QR로 결과를 공유합니다.</small></div></div>
+        </div>
+      </section>
+    </div>
+    <div className="welcome-footer"><span>AX 테크선도팀</span></div>
+  </main>;
+}
 
 function Learn({ index, setIndex, onNext }: { index: number; setIndex: (value: number) => void; onNext: () => void }) { const slide = slides[index]; return <main className="app-shell"><PageHeading eyebrow={`ORIENTATION / ${slide.kicker}`} title={slide.title} description={slide.body} action={<div className="slide-count"><strong>{String(index + 1).padStart(2, '0')}</strong><span>/ 07</span></div>} /><section className="learning-stage"><div className="learning-card"><div className="learning-number">{String(index + 1).padStart(2, '0')}</div><div className="learning-content"><p className="eyebrow">{slide.kicker}</p><h2>{slide.title}</h2><p>{slide.body}</p><div className="learning-stat"><span className="stat-line" />{slide.stat}</div></div><div className="learning-orbit"><span /><span /><span /></div></div><div className="slide-dots" role="tablist" aria-label="개념 슬라이드">{slides.map((item, itemIndex) => <button type="button" role="tab" aria-selected={itemIndex === index} aria-label={`${itemIndex + 1}번째 슬라이드`} className={itemIndex === index ? 'is-active' : ''} onClick={() => setIndex(itemIndex)} key={item.kicker} />)}</div></section><div className="page-actions"><button className="text-button" type="button" onClick={() => index > 0 && setIndex(index - 1)} disabled={index === 0}><Icon name="back" size={17} /> 이전</button>{index < slides.length - 1 ? <button className="primary-button" type="button" onClick={() => setIndex(index + 1)}>다음 슬라이드 <Icon name="arrow" size={17} /></button> : <button className="primary-button" type="button" onClick={onNext}>직접 만들어 보기 <Icon name="arrow" size={17} /></button>}</div></main>; }
 
