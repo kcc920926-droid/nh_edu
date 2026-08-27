@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@font-face { font-family: "RIDIBatang"; src: url('/fonts/RIDIBatang.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+
 :root { --ink: #283451; --muted: #69748f; --line: #d2daeb; --soft: #e5eaf5; --paper: #e9eef8; --blue: #5b6ee1; --blue-dark: #4658bd; --sky: #dfe5ff; --mint: #dff3eb; --green: #378c73; --clay: #edf2fc; --clay-shadow: 14px 14px 30px rgba(126, 140, 171, .22), -12px -12px 26px rgba(255, 255, 255, .9); }
 * { box-sizing: border-box; }
 html { background: var(--paper); }
@@ -84,7 +86,7 @@ h1, h2, p { margin-top: 0; }
 .learning-card { min-height: 430px; border-radius: 28px; border: 1px solid rgba(255,255,255,.82); background: linear-gradient(128deg, rgba(248,250,255,.92) 0%, rgba(224,231,245,.88) 100%); position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(350px, .9fr); gap: 44px; align-items: center; padding: 55px 58px; }
 .learning-number { position: absolute; font-size: 220px; font-weight: 800; color: rgba(91,110,225,.05); line-height: .8; left: 30px; bottom: -36px; letter-spacing: -.12em; pointer-events: none; }
 .learning-content { max-width: 570px; position: relative; z-index: 1; }
-.learning-content h1 { font-size: clamp(35px, 3.3vw, 47px); line-height: 1.16; letter-spacing: -.055em; margin: 0 0 19px; }
+.learning-content h1 { font-family: "RIDIBatang", "Noto Serif KR", "Batang", serif; font-size: clamp(35px, 3.3vw, 47px); font-weight: 400; line-height: 1.2; letter-spacing: -.035em; margin: 0 0 19px; }
 .learning-content > p:not(.eyebrow) { color: #596680; font-size: 15px; line-height: 1.72; margin-bottom: 27px; }
 .learning-stat { display: flex; align-items: center; gap: 10px; color: var(--blue); font-size: 12px; font-weight: 760; }
 .stat-line { width: 25px; height: 2px; background: var(--blue); }

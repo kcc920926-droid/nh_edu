@@ -1,0 +1,8 @@
+RIDIBatang Font Notice
+
+This site uses RIDIBatang, provided by RIDI Corporation.
+Copyright (c) RIDI Corporation.
+Licensed under the SIL Open Font License, Version 1.1.
+
+Source and license information:
+https://ridicorp.com/ridibatang/
