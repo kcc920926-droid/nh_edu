@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
+import { bundleUpload } from '@/lib/bundle';
 
 type Step = 'welcome' | 'learn' | 'builder' | 'agent' | 'revise' | 'upload' | 'complete';
 type IconName =
@@ -237,6 +238,8 @@ function injectPreviewPolicy(html: string) {
   const meta = `<meta http-equiv="Content-Security-Policy" content="${policy}">`;
   return /<head\b[^>]*>/i.test(html) ? html.replace(/<head\b[^>]*>/i, (match) => `${match}${meta}`) : `${meta}${html}`;
 }
+// basePath(/lab 등) 아래에 배포돼도 API 경로가 따라가도록 현재 페이지 경로에서 만든다.
+function apiUrl(name: string) { return `${window.location.pathname.replace(/\/$/, '')}/api/${name}`; }
 function copyToClipboard(value: string) {
   if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value);
   const textarea = document.createElement('textarea'); textarea.value = value; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); textarea.remove(); return Promise.resolve();
@@ -378,9 +381,9 @@ function AgentGuide({ prompt, copied, onCopy, onNext, onBack }: { prompt: string
     <div className="agent-layout">
       <section className="agent-steps">
         <div className="agent-step"><span>01</span><div><strong>요청문을 복사해요.</strong><p>오른쪽 요청문을 복사해 Antigravity 채팅창에 붙여 넣습니다.</p></div><Icon name="copy" size={20} /></div>
-        <div className="agent-step"><span>02</span><div><strong>index.html을 확인해요.</strong><p>파일은 바탕화면\\AI실습 폴더에 저장됩니다.</p></div><Icon name="checklist" size={20} /></div>
+        <div className="agent-step"><span>02</span><div><strong>만들어진 파일을 확인해요.</strong><p>바탕화면\AI실습 폴더에 index.html이 생깁니다. style.css, script.js가 함께 생겨도 괜찮아요.</p></div><Icon name="checklist" size={20} /></div>
         <div className="agent-step"><span>03</span><div><strong>완성된 화면을 열어 봐요.</strong><p>글씨, 색상, 간격을 살펴보고 다음 단계에서 원하는 부분을 다듬습니다.</p></div><Icon name="desktop" size={20} /></div>
-        <div className="agent-help"><Icon name="wand" size={19} /><div><strong>파일 저장 한 번 더 요청하기</strong><p>“완성된 결과를 현재 워크스페이스의 index.html로 저장해 줘.”라고 입력하세요.</p></div></div>
+        <div className="agent-help"><Icon name="wand" size={19} /><div><strong>파일이 안 보이면 한 번 더 요청하기</strong><p>“결과물을 바탕화면의 AI실습 폴더에 index.html로 저장해 줘.”라고 입력하세요.</p></div></div>
       </section>
       <section className="agent-prompt-card"><div className="prompt-card-head"><span className="live-dot" /> ANTIGRAVITY REQUEST <button className="icon-button" type="button" onClick={onCopy} aria-label="요청문 복사"><Icon name={copied ? 'check' : 'copy'} size={18} /></button></div><pre>{prompt}</pre><button className="secondary-button full" type="button" onClick={onCopy}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '요청문 복사'}</button></section>
     </div>
@@ -400,13 +403,86 @@ function Revision({ selected, setSelected, directText, setDirectText, prompt, co
   </main>;
 }
 
-function Upload({ file, validation, preview, uploading, error, onFile, onPublish, onBack }: { file: File | null; validation: Validation | null; preview: string; uploading: boolean; error: string; onFile: (file: File) => void; onPublish: () => void; onBack: () => void }) {
+type FsEntry = {
+  isFile: boolean;
+  isDirectory: boolean;
+  file: (resolve: (file: File) => void, reject: (error: unknown) => void) => void;
+  createReader: () => { readEntries: (resolve: (entries: FsEntry[]) => void, reject: (error: unknown) => void) => void };
+};
+
+async function collectDropped(dataTransfer: DataTransfer): Promise<File[]> {
+  const entries = Array.from(dataTransfer.items ?? [])
+    .map((item) => (item as DataTransferItem & { webkitGetAsEntry?: () => FsEntry | null }).webkitGetAsEntry?.())
+    .filter((entry): entry is FsEntry => Boolean(entry));
+  if (!entries.length) return Array.from(dataTransfer.files ?? []);
+  const collected: File[] = [];
+  const walk = async (entry: FsEntry, depth: number): Promise<void> => {
+    if (depth > 4 || collected.length >= 60) return;
+    if (entry.isFile) {
+      const item = await new Promise<File>((resolve, reject) => entry.file(resolve, reject)).catch(() => null);
+      if (item) collected.push(item);
+      return;
+    }
+    if (!entry.isDirectory) return;
+    const reader = entry.createReader();
+    let batch: FsEntry[] = [];
+    do {
+      batch = await new Promise<FsEntry[]>((resolve, reject) => reader.readEntries(resolve, reject)).catch(() => []);
+      for (const child of batch) await walk(child, depth + 1);
+    } while (batch.length && collected.length < 60);
+  };
+  for (const entry of entries) await walk(entry, 0);
+  return collected;
+}
+
+function UploadGuide() {
+  return <div className="upload-guide" role="img" aria-label="index.html과 style.css, script.js가 들어 있는 폴더를 올리면 자동으로 한 파일로 합쳐 게시됩니다.">
+    <svg viewBox="0 0 560 132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g fontFamily="inherit">
+        <path d="M14 30a6 6 0 0 1 6-6h34l10 10h60a6 6 0 0 1 6 6v62a6 6 0 0 1-6 6H20a6 6 0 0 1-6-6Z" fill="var(--sky)" stroke="var(--blue)" strokeWidth="1.6" />
+        <rect x="26" y="44" width="86" height="16" rx="5" fill="#ffffff" stroke="var(--blue)" strokeWidth="1.2" />
+        <text x="34" y="55.5" fontSize="9.5" fontWeight="700" fill="var(--blue-dark)">index.html</text>
+        <rect x="26" y="63" width="86" height="16" rx="5" fill="#ffffff" stroke="var(--green)" strokeWidth="1.2" />
+        <text x="34" y="74.5" fontSize="9.5" fontWeight="700" fill="var(--green)">style.css</text>
+        <rect x="26" y="82" width="86" height="16" rx="5" fill="#ffffff" stroke="#c08a2d" strokeWidth="1.2" />
+        <text x="34" y="93.5" fontSize="9.5" fontWeight="700" fill="#a06b1f">script.js</text>
+        <text x="66" y="122" fontSize="10.5" fill="var(--muted)" textAnchor="middle">결과물 폴더</text>
+        <path d="M148 66h44" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="1 6" />
+        <path d="m188 60 8 6-8 6" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="170" y="48" fontSize="10.5" fill="var(--muted)" textAnchor="middle">그대로 올리면</text>
+        <rect x="212" y="24" width="110" height="84" rx="10" fill="#ffffff" stroke="var(--blue)" strokeWidth="1.6" />
+        <rect x="212" y="24" width="110" height="20" rx="10" fill="var(--sky)" />
+        <circle cx="224" cy="34" r="2.6" fill="var(--blue)" /><circle cx="233" cy="34" r="2.6" fill="var(--blue)" opacity=".55" /><circle cx="242" cy="34" r="2.6" fill="var(--blue)" opacity=".3" />
+        <rect x="224" y="54" width="86" height="7" rx="3.5" fill="var(--soft)" />
+        <rect x="224" y="67" width="62" height="7" rx="3.5" fill="var(--soft)" />
+        <rect x="224" y="80" width="74" height="7" rx="3.5" fill="var(--soft)" />
+        <text x="267" y="122" fontSize="10.5" fill="var(--muted)" textAnchor="middle">한 파일로 자동 합침</text>
+        <path d="M336 66h44" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeDasharray="1 6" />
+        <path d="m376 60 8 6-8 6" fill="none" stroke="var(--muted)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="358" y="48" fontSize="10.5" fill="var(--muted)" textAnchor="middle">게시하면</text>
+        <rect x="402" y="24" width="64" height="84" rx="10" fill="#ffffff" stroke="var(--blue)" strokeWidth="1.6" />
+        <g fill="var(--ink)">
+          <rect x="414" y="38" width="10" height="10" rx="2" /><rect x="444" y="38" width="10" height="10" rx="2" />
+          <rect x="414" y="68" width="10" height="10" rx="2" /><rect x="430" y="52" width="8" height="8" rx="2" />
+          <rect x="446" y="70" width="8" height="8" rx="2" /><rect x="430" y="82" width="8" height="8" rx="2" />
+        </g>
+        <text x="434" y="122" fontSize="10.5" fill="var(--muted)" textAnchor="middle">QR · URL</text>
+        <rect x="482" y="42" width="66" height="48" rx="10" fill="var(--mint)" stroke="var(--green)" strokeWidth="1.4" />
+        <text x="515" y="62" fontSize="10" fontWeight="700" fill="var(--green)" textAnchor="middle">휴대폰으로</text>
+        <text x="515" y="76" fontSize="10" fontWeight="700" fill="var(--green)" textAnchor="middle">바로 확인</text>
+      </g>
+    </svg>
+  </div>;
+}
+
+function Upload({ file, parts, validation, preview, uploading, error, onFiles, onPublish, onBack }: { file: File | null; parts: string[]; validation: Validation | null; preview: string; uploading: boolean; error: string; onFiles: (files: File[]) => void; onPublish: () => void; onBack: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   return <main className="app-shell upload-shell">
-    <PageHeading eyebrow="PUBLISH / 01 — CHECK AND UPLOAD" title="완성한 index.html을 올려 주세요." description="미리보기를 확인하고 게시하면 URL과 QR이 만들어집니다." action={<span className="upload-limit"><Icon name="lock" size={14} /> 최대 1MB · HTML 1개</span>} />
+    <PageHeading eyebrow="PUBLISH / 01 — CHECK AND UPLOAD" title="완성한 결과물을 올려 주세요." description="index.html 하나만 있어도 되고, style.css·script.js·이미지가 함께 있는 폴더째 올려도 자동으로 한 파일로 합쳐집니다." action={<span className="upload-limit"><Icon name="lock" size={14} /> 최대 1MB · 자동 합침</span>} />
     <div className="upload-layout">
-      <section><button type="button" className={`dropzone ${dragging ? 'is-dragging' : ''} ${file ? 'has-file' : ''}`} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); const dropped = event.dataTransfer.files[0]; if (dropped) onFile(dropped); }}><input ref={inputRef} type="file" accept=".html,text/html" hidden onChange={(event) => { const selected = event.target.files?.[0]; if (selected) onFile(selected); }} />{file ? <><span className="file-icon"><Icon name="check" size={24} /></span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB · 바꾸려면 다시 눌러 주세요</small></> : <><span className="upload-icon"><Icon name="upload" size={25} /></span><strong>index.html을 골라 주세요.</strong><small>파일을 이곳으로 끌어와도 돼요.</small></>}</button>{validation?.issues.length ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>파일을 조금 다듬어 주세요.</strong>{validation.issues.map((issue) => <p key={issue}>{issue}</p>)}</div></div> : null}{validation?.warnings.length ? <div className="validation-box warning"><Icon name="warning" size={18} /><div><strong>한 번 확인해 주세요.</strong>{validation.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div></div> : null}{error ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>게시를 이어서 진행해 주세요.</strong><p>{error}</p></div></div> : null}</section>
+      <section><button type="button" className={`dropzone ${dragging ? 'is-dragging' : ''} ${file ? 'has-file' : ''}`} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); void collectDropped(event.dataTransfer).then((dropped) => { if (dropped.length) onFiles(dropped); }); }}><input ref={inputRef} type="file" accept=".html,.htm,.css,.js,.mjs,.png,.jpg,.jpeg,.gif,.svg,.webp,.ico,.woff,.woff2,.ttf,.otf" multiple hidden onChange={(event) => { const selected = Array.from(event.target.files ?? []); if (selected.length) onFiles(selected); event.target.value = ''; }} /><input ref={folderRef} type="file" hidden multiple onChange={(event) => { const selected = Array.from(event.target.files ?? []); if (selected.length) onFiles(selected); event.target.value = ''; }} {...({ webkitdirectory: '' } as Record<string, string>)} />{file ? <><span className="file-icon"><Icon name="check" size={24} /></span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB · 바꾸려면 다시 눌러 주세요</small>{parts.length > 1 ? <span className="file-chips">{parts.map((part) => <span className="file-chip" key={part}><Icon name="check" size={12} /> {part}</span>)}</span> : null}</> : <><span className="upload-icon"><Icon name="upload" size={25} /></span><strong>index.html 또는 폴더 속 파일들을 골라 주세요.</strong><small>폴더를 통째로 끌어다 놓아도 돼요.</small></>}</button><div className="upload-actions"><button className="secondary-button" type="button" onClick={() => folderRef.current?.click()}><Icon name="upload" size={15} /> 폴더째 올리기</button><span className="upload-actions-note">여러 파일은 자동으로 index.html 하나로 합쳐져요.</span></div><UploadGuide />{validation?.issues.length ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>파일을 조금 다듬어 주세요.</strong>{validation.issues.map((issue) => <p key={issue}>{issue}</p>)}</div></div> : null}{validation?.warnings.length ? <div className="validation-box warning"><Icon name="warning" size={18} /><div><strong>한 번 확인해 주세요.</strong>{validation.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div></div> : null}{error ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>게시를 이어서 진행해 주세요.</strong><p>{error}</p></div></div> : null}</section>
       <section className="preview-card"><div className="preview-head"><div><p className="eyebrow">LIVE PREVIEW</p><h2>완성 화면</h2></div><div className="preview-modes"><span className="mode-active"><Icon name="desktop" size={14} /> 데스크톱</span><span><Icon name="mobile" size={14} /> 모바일</span></div></div><div className="preview-window"><div className="window-bar"><span /><span /><span /><small>{file ? 'index.html' : '파일을 기다리는 중'}</small></div>{preview ? <iframe title="index.html 미리보기" className="preview-frame" sandbox="allow-scripts" srcDoc={preview} /> : <div className="preview-empty"><Icon name="desktop" size={28} /><span>파일을 고르면<br />완성 화면이 보여요.</span></div>}</div></section>
     </div>
     <div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 다듬기로 돌아가기</button><button className="primary-button" type="button" disabled={!file || !!validation?.issues.length || uploading} onClick={onPublish}>{uploading ? <><span className="spinner" /> 게시 중…</> : <>게시하고 URL 받기 <Icon name="arrow" size={17} /></>}</button></div>
@@ -431,6 +507,7 @@ export default function Home() {
   const [revisionSelected, setRevisionSelected] = useState<string[]>([]);
   const [directRevision, setDirectRevision] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [bundleParts, setBundleParts] = useState<string[]>([]);
   const [fileText, setFileText] = useState('');
   const [validation, setValidation] = useState<Validation | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -448,7 +525,7 @@ export default function Home() {
         if (savedResult) setLatest(JSON.parse(savedResult) as Published);
       } catch { /* browser storage may be disabled */ }
     }, 0);
-    void fetch('/api/anonymous-session', { method: 'POST', credentials: 'same-origin' }).catch(() => undefined);
+    void fetch(apiUrl('anonymous-session'), { method: 'POST', credentials: 'same-origin' }).catch(() => undefined);
     return () => window.clearTimeout(handle);
   }, []);
   useEffect(() => { if (!published?.url) return; QRCode.toDataURL(published.url, { width: 220, margin: 1, errorCorrectionLevel: 'M', color: { dark: '#14253d', light: '#ffffff' } }).then(setQrCode).catch(() => setQrCode('')); }, [published]);
@@ -459,7 +536,7 @@ export default function Home() {
   const currentFeatureGroups = page ? featureGroupsByPage[page.id] ?? [] : [];
   const selectedFeatureNames = currentFeatureGroups.flatMap((group) => group.options).filter((item) => selection.features.includes(item.id)).map((item) => item.title);
   const selectedFeatureText = selectedFeatureNames.join('\n- ');
-  const generatedPrompt = useMemo(() => { if (!page || !audience || !design) return ''; return `현재 열려 있는 바탕화면\\AI실습 워크스페이스에서 작업해줘.\n\n[목표]\n${page.goal}\n\n[사용 상황]\n${audience.title}: ${audience.description}\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일에서도 읽고 누르기 편하게 구성한다.\n\n[기능]\n- ${selectedFeatureText || '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 방법]\n1. 워크스페이스에 index.html을 만든다.\n2. HTML, CSS, JavaScript를 index.html 하나에 작성한다.\n3. 필요한 코드와 리소스를 모두 index.html 안에 넣는다.\n4. 브라우저 기본 기능만 활용해 완성한다.\n5. 현재 워크스페이스의 index.html만 작성한다.\n6. 브라우저에서 화면과 기능을 확인한다.\n7. 발견한 오류를 고친 뒤 완료 내용을 알려준다.`; }, [audience, design, page, selectedFeatureText]);
+  const generatedPrompt = useMemo(() => { if (!page || !audience || !design) return ''; return `바탕화면의 "AI실습" 폴더에서 작업해줘. 폴더가 없으면 먼저 만들어 줘.\n\n[목표]\n${page.goal}\n\n[사용 상황]\n${audience.title}: ${audience.description}\n\n[필수 내용]\n${page.required.map((item) => `- ${item}`).join('\n')}\n\n[디자인]\n- ${design.title}\n- 핵심 내용이 첫 화면에서 보이게 한다.\n- 모바일에서도 읽고 누르기 편하게 구성한다.\n\n[기능]\n- ${selectedFeatureText || '페이지 유형에 맞는 인터랙션 1개 이상'}\n\n[작업 방법 — 순서대로 정확히 지켜줘]\n1. 바탕화면\\AI실습 폴더가 없으면 새로 만든다.\n2. 그 폴더 안에 index.html 파일을 만든다. 파일명은 반드시 index.html로 한다.\n3. CSS와 JavaScript는 index.html 안에 함께 작성해도 되고, 같은 폴더에 style.css와 script.js로 나눠도 된다. 파일명은 index.html, style.css, script.js 세 가지만 사용한다.\n4. 파일을 나눌 경우 index.html에서 ./style.css 와 ./script.js 상대 경로로만 연결한다.\n5. 외부 CDN, 외부 이미지 주소, 웹폰트 링크, fetch 같은 네트워크 요청은 절대 사용하지 않는다. 필요한 이미지는 이모지나 인라인 SVG로 그린다.\n6. 모든 파일은 UTF-8 인코딩으로 저장한다.\n7. 완성되면 브라우저에서 index.html을 열어 화면과 기능을 직접 확인한다.\n8. 발견한 오류를 고친 뒤, 만든 파일 목록과 저장 위치를 알려준다.`; }, [audience, design, page, selectedFeatureText]);
   const promptEdited = promptOverride?.source === generatedPrompt;
   const prompt = promptOverride?.source === generatedPrompt ? promptOverride.value : generatedPrompt;
   const revisionPrompt = useMemo(() => { const requests = revisionOptions.filter((item) => revisionSelected.includes(item.id)).map((item) => `- ${item.text}`); if (directRevision.trim()) requests.push(`- ${directRevision.trim()}`); return `현재 index.html을 바탕으로 아래 부분을 다듬어 줘.\n\n${requests.length ? requests.join('\n') : '- 읽기 편한 화면과 모바일 구성을 한 번 더 살펴봐 줘.'}\n\n다듬은 뒤 브라우저에서 다시 확인해 줘.`; }, [directRevision, revisionSelected]);
@@ -467,12 +544,12 @@ export default function Home() {
   const openPromptEditor = useCallback(() => { if (!prompt) return; setPromptDraft(prompt); setPromptEditorOpen(true); }, [prompt]);
   const savePromptEditor = useCallback(() => { const value = promptDraft.trim(); if (!value) return; setPromptOverride({ source: generatedPrompt, value }); setPromptDraft(value); setPromptEditorOpen(false); }, [generatedPrompt, promptDraft]);
   const resetPromptEditor = useCallback(() => { setPromptOverride(null); setPromptDraft(generatedPrompt); }, [generatedPrompt]);
-  const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setPromptOverride(null); setPromptEditorOpen(false); setPromptDraft(''); setRevisionSelected([]); setDirectRevision(''); setFile(null); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
+  const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setPromptOverride(null); setPromptEditorOpen(false); setPromptDraft(''); setRevisionSelected([]); setDirectRevision(''); setFile(null); setBundleParts([]); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
   const copyPrompt = useCallback(() => { if (!prompt) return; copyToClipboard(prompt).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); }); }, [prompt]);
   const copyRevision = useCallback(() => { copyToClipboard(revisionPrompt).then(() => { setRevisionCopied(true); window.setTimeout(() => setRevisionCopied(false), 1600); }); }, [revisionPrompt]);
-  const handleFile = useCallback(async (selected: File) => { setUploadError(''); setFile(selected); try { const text = await selected.text(); setFileText(text); setValidation(validateHtml(text, selected.name, selected.size)); } catch { setFileText(''); setValidation({ issues: ['파일을 여는 데 시간이 걸렸어요. 다른 파일을 골라 주세요.'], warnings: [] }); } }, []);
-  const publish = useCallback(async () => { if (!file || !fileText || validation?.issues.length) return; setUploading(true); setUploadError(''); try { const form = new FormData(); form.append('file', file, 'index.html'); const response = await fetch('/api/pages', { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }, body: form }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data?.error?.message || '잠시 뒤 게시 버튼을 한 번 더 눌러 주세요.'); const result = data as Published; setPublished(result); setLatest(result); setStep('complete'); try { window.localStorage.setItem(RESULT_KEY, JSON.stringify(result)); } catch { /* ignore */ } } catch (error) { setUploadError(error instanceof Error ? error.message : '게시가 잠시 멈췄어요. 버튼을 한 번 더 눌러 주세요.'); } finally { setUploading(false); } }, [file, fileText, validation]);
+  const handleFiles = useCallback(async (selected: File[]) => { setUploadError(''); try { const bundled = await bundleUpload(selected); setFile(bundled.file); setFileText(bundled.text); setBundleParts(bundled.parts); setValidation(validateHtml(bundled.text, 'index.html', bundled.file.size)); } catch (bundleError) { setFile(null); setFileText(''); setBundleParts([]); setValidation({ issues: [bundleError instanceof Error ? bundleError.message : '파일을 여는 데 문제가 있었어요. 다시 골라 주세요.'], warnings: [] }); } }, []);
+  const publish = useCallback(async () => { if (!file || !fileText || validation?.issues.length) return; setUploading(true); setUploadError(''); try { const form = new FormData(); form.append('file', file, 'index.html'); const response = await fetch(apiUrl('pages'), { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }, body: form }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data?.error?.message || '잠시 뒤 게시 버튼을 한 번 더 눌러 주세요.'); const result = data as Published; setPublished(result); setLatest(result); setStep('complete'); try { window.localStorage.setItem(RESULT_KEY, JSON.stringify(result)); } catch { /* ignore */ } } catch (error) { setUploadError(error instanceof Error ? error.message : '게시가 잠시 멈췄어요. 버튼을 한 번 더 눌러 주세요.'); } finally { setUploading(false); } }, [file, fileText, validation]);
   const openLatest = () => { if (latest?.url) window.open(latest.url, '_blank', 'noopener,noreferrer'); }; const openPublished = () => { if (published?.url) window.open(published.url, '_blank', 'noopener,noreferrer'); };
   if (step === 'welcome') return <Welcome builderCode={builderCode} latest={latest} onStart={() => setStep('learn')} onOpenLatest={openLatest} />;
-  return <><TopBar step={step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onEditPrompt={openPromptEditor} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFile={handleFile} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('revise')} onReset={reset} /> : null}<PromptEditorModal open={promptEditorOpen} value={promptDraft} edited={promptEdited} onChange={setPromptDraft} onClose={closePromptEditor} onSave={savePromptEditor} onReset={resetPromptEditor} /></>;
+  return <><TopBar step={step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onEditPrompt={openPromptEditor} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} parts={bundleParts} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFiles={handleFiles} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('revise')} onReset={reset} /> : null}<PromptEditorModal open={promptEditorOpen} value={promptDraft} edited={promptEdited} onChange={setPromptDraft} onClose={closePromptEditor} onSave={savePromptEditor} onReset={resetPromptEditor} /></>;
 }
