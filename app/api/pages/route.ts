@@ -21,7 +21,12 @@ function json(body: unknown, status = 200, extra?: HeadersInit) { const headers 
 function errorResponse(code: string, message: string, status: number, id: string, issues?: unknown[]) { return json({ error: { code, message, requestId: id, ...(issues ? { issues } : {}) } }, status); }
 function cookieValue(header: string, name: string) { const found = header.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${name}=`)); return found?.slice(name.length + 1) || ''; }
 function getClientIp(request: Request) { return request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For')?.split(',')[0].trim() || 'local'; }
-function checkOrigin(request: Request) { const origin = request.headers.get('Origin'); return !origin || origin === new URL(request.url).origin; }
+// TLS 종료 프록시 뒤에서는 앱이 보는 스킴(http)과 브라우저 Origin(https)이 다르므로 호스트만 비교한다.
+function checkOrigin(request: Request) {
+  const origin = request.headers.get('Origin');
+  if (!origin) return true;
+  try { return new URL(origin).host === new URL(request.url).host; } catch { return false; }
+}
 function publicBase(request: Request, resultOrigin?: string) {
   if (resultOrigin) return resultOrigin.replace(/\/$/, '');
   const requestUrl = new URL(request.url);
