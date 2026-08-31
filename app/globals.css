@@ -355,3 +355,20 @@ h1, h2, p { margin-top: 0; }
 @keyframes dgPing { 0% { transform: scale(.55); opacity: .9; } 80%, 100% { transform: scale(1.15); opacity: 0; } }
 .dg-ping { animation: dgPing 1.7s ease-out infinite; transform-box: fill-box; transform-origin: center; }
 @media (max-width: 700px) { .detail-groups { grid-template-columns: 1fr; } }
+.mock-neu { background: #e4e9f2; }
+.mock-neu .m-title { background: #c6cfdd; }
+.mock-neu .m-card { background: #e4e9f2; border-radius: 14px; box-shadow: -5px -5px 10px rgba(255,255,255,.95), 6px 6px 12px rgba(146,161,187,.5); }
+.mock-neu .m-line { background: #d3dae6; }
+.mock-neu .m-btn { background: #e4e9f2; border-radius: 9px; box-shadow: -3px -3px 7px rgba(255,255,255,.95), 4px 4px 8px rgba(146,161,187,.5); }
+
+.mock-editorial { background: #faf8f4; }
+.mock-editorial .m-title { background: #111111; width: 58%; height: 10px; border-radius: 0; }
+.mock-editorial .m-card { background: transparent; border-top: 2.5px solid #111; border-bottom: 1px solid #c9c4ba; border-radius: 0; }
+.mock-editorial .m-line { background: #d8d3c8; border-radius: 0; }
+.mock-editorial .m-btn { background: transparent; border-bottom: 2px solid #111; border-radius: 0; width: 40px; height: 10px; }
+
+.mock-aurora { background: linear-gradient(120deg, #9ed2ff, #d9c8ff 48%, #ffd3e6); }
+.mock-aurora .m-title { background: rgba(255,255,255,.85); }
+.mock-aurora .m-card { background: #ffffff; border-radius: 14px; box-shadow: 0 10px 20px rgba(124, 108, 214, .28); }
+.mock-aurora .m-line { background: #eef0fb; }
+.mock-aurora .m-btn { background: linear-gradient(120deg, #5b8bff, #a06bf3); }
