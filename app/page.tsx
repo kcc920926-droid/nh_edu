@@ -251,13 +251,91 @@ const motionOptions: MotionOption[] = [
   ] },
 ];
 
-function buildAdvancedPrompt(styleId: string, motionIds: string[]) {
+type DetailOption = { id: string; title: string; line: string };
+type DetailGroup = { id: string; title: string; options: DetailOption[] };
+
+const detailGroups: DetailGroup[] = [
+  { id: 'layout', title: '레이아웃', options: [
+    { id: 'single', title: '단일 컬럼', line: '본문을 최대 720px 단일 컬럼으로 중앙 정렬해 위에서 아래로 읽히게 구성한다.' },
+    { id: 'grid', title: '카드 그리드', line: '콘텐츠를 균일한 카드 그리드(2~3열, 모바일 1열)로 정리한다.' },
+    { id: 'bento', title: 'Bento', line: '크기가 다른 카드를 벤토 박스처럼 짜맞춘 그리드로 배치해 시각적 강약을 만든다.' },
+    { id: 'sidebar', title: '사이드바', line: '왼쪽 사이드바(메뉴·요약)와 오른쪽 콘텐츠 영역으로 나뉜 대시보드 구조로 만든다.' },
+  ] },
+  { id: 'density', title: '정보 밀도', options: [
+    { id: 'relaxed', title: '여유롭게', line: '여백을 넉넉히 쓰고 한 화면에 핵심 정보만 크게 보여준다.' },
+    { id: 'balanced', title: '균형형', line: '여백과 정보량의 균형을 맞춰 부담 없이 훑어볼 수 있게 한다.' },
+    { id: 'dense', title: '데이터 중심', line: '표와 작은 카드로 정보를 촘촘하게 배치해 데이터 중심 화면을 만든다. 글자 크기는 가독성을 지킨다.' },
+  ] },
+  { id: 'radius', title: '모서리', options: [
+    { id: 'sharp', title: '각진 형태', line: '모든 모서리를 0으로 각지게 통일한다.' },
+    { id: 'r8', title: '8px', line: '모서리 라운드를 8px로 통일한다.' },
+    { id: 'r16', title: '16px', line: '모서리 라운드를 16px로 통일한다.' },
+    { id: 'pill', title: '완전한 pill', line: '버튼과 입력창은 완전한 pill(999px)로, 카드도 크게 둥글린다.' },
+  ] },
+  { id: 'depth', title: '입체감', options: [
+    { id: 'flat', title: 'Flat', line: '그림자 없이 색 면과 보더만으로 평면적으로 표현한다.' },
+    { id: 'shadow', title: '얕은 그림자', line: '0 2px 8px 수준의 얕은 그림자만 사용해 은은한 층위를 만든다.' },
+    { id: 'glass', title: 'Glass', line: '반투명 배경과 backdrop-filter blur로 유리 질감 카드를 만든다(미지원 브라우저용 폴백 배경색 포함).' },
+    { id: 'clay', title: 'Clay', line: '바깥 소프트 그림자 + 안쪽 밝은 하이라이트(inset)로 말랑한 점토 입체감을 준다.' },
+  ] },
+  { id: 'border', title: '테두리', options: [
+    { id: 'none', title: '없음', line: '보더 없이 배경색 차이만으로 영역을 구분한다.' },
+    { id: 'hairline', title: '얇은 경계', line: '1px의 얇은 저대비 보더로 영역을 구분한다.' },
+    { id: 'contrast', title: '고대비', line: '2~3px의 고대비(짙은 색) 보더로 요소 윤곽을 또렷하게 만든다.' },
+    { id: 'gradient', title: 'Gradient', line: '그라데이션 보더(이중 background 기법)로 카드 테두리를 화려하게 만든다.' },
+  ] },
+  { id: 'typo', title: '타이포그래피', options: [
+    { id: 'sans', title: '친근한 Sans', line: '시스템 산세리프(Noto Sans KR 계열) 폰트 스택으로 친근하고 깔끔하게 쓴다.' },
+    { id: 'mono', title: '기술적 Mono', line: '제목과 수치에 모노스페이스 시스템 폰트를 써서 기술적인 무드를 만든다.' },
+    { id: 'serif', title: 'Editorial Serif', line: '제목에 세리프(명조) 시스템 폰트를 써서 에디토리얼한 분위기를 만든다. 웹폰트 로딩은 금지.' },
+  ] },
+  { id: 'icons', title: '아이콘', options: [
+    { id: 'outline', title: 'Outline', line: '아이콘은 1.5~2px 스트로크의 아웃라인 스타일 인라인 SVG로 직접 그린다.' },
+    { id: 'filled', title: 'Filled', line: '아이콘은 단색 채움(filled) 스타일 인라인 SVG로 직접 그린다.' },
+    { id: 'duotone', title: 'Duotone', line: '아이콘은 진한 색 + 연한 색 두 톤의 duotone 인라인 SVG로 그린다.' },
+    { id: 'emoji3d', title: '3D 이모지', line: '아이콘 대신 입체감 있는 이모지를 큼직한 포인트로 쓴다.' },
+  ] },
+  { id: 'image', title: '이미지 스타일', options: [
+    { id: 'illust', title: 'SVG 일러스트', line: '이미지가 필요한 자리는 인라인 SVG 일러스트로 직접 그린다(외부 이미지 금지).' },
+    { id: 'object3d', title: '3D 오브젝트', line: '그라데이션과 그림자를 활용한 3D 오브젝트 느낌의 SVG 도형으로 장식한다.' },
+    { id: 'iso', title: '아이소메트릭', line: '아이소메트릭 시점의 SVG 도형으로 장식 그래픽을 만든다.' },
+    { id: 'typoOnly', title: '장식 없음', line: '장식 이미지 없이 타이포그래피와 색만으로 구성한다.' },
+  ] },
+  { id: 'background', title: '배경', options: [
+    { id: 'solid', title: '단색', line: '배경은 단색으로 차분하게 유지한다.' },
+    { id: 'mesh', title: 'Mesh gradient', line: '여러 색이 은은하게 번지는 mesh gradient 배경(겹친 radial-gradient)을 만든다.' },
+    { id: 'noise', title: 'Noise', line: 'SVG feTurbulence를 data URL로 만든 미세한 노이즈 질감을 배경에 깔아 종이 같은 촉감을 준다.' },
+    { id: 'grid', title: 'Grid', line: '옅은 모눈 격자 패턴 배경을 CSS gradient로 그린다.' },
+    { id: 'blob', title: 'Blob', line: '흐릿한 유기적 blob 도형 2~3개를 배경에 배치한다.' },
+  ] },
+  { id: 'emphasis', title: '강조 방식', options: [
+    { id: 'color', title: '색상', line: '중요 정보는 포인트 색상 하나로만 강조한다.' },
+    { id: 'size', title: '크기', line: '중요 수치는 주변보다 2배 이상 크게 키워 강조한다.' },
+    { id: 'highlight', title: '형광 밑줄', line: '핵심 문구에 형광펜 밑줄(linear-gradient 배경) 효과를 준다.' },
+    { id: 'badge', title: '배지', line: '상태와 분류는 작은 배지(pill)로 표시한다.' },
+    { id: 'glow', title: 'Glow', line: '주요 버튼과 핵심 카드에 은은한 glow(box-shadow)를 준다.' },
+  ] },
+  { id: 'scheme', title: '다크모드', options: [
+    { id: 'light', title: 'Light', line: '라이트 모드 단일 테마로 만든다.' },
+    { id: 'dark', title: 'Dark', line: '다크 모드 단일 테마로 만든다.' },
+    { id: 'auto', title: '시스템 연동', line: 'CSS 변수로 테마를 설계해 prefers-color-scheme에 따라 자동 전환하고, 수동 토글 버튼도 하나 둔다.' },
+  ] },
+  { id: 'cursor', title: '커서', options: [
+    { id: 'basic', title: '기본', line: '커서는 브라우저 기본값을 유지한다.' },
+    { id: 'custom', title: '커스텀', line: '마우스를 따라다니는 작은 원형 도트 커서를 JS로 구현한다(모바일에서는 비활성화).' },
+    { id: 'reactive', title: '반응형', line: '클릭 가능한 요소에 올리면 커서 도트가 커지는 반응형 커서를 구현한다(모바일에서는 비활성화).' },
+  ] },
+];
+
+function buildAdvancedPrompt(styleId: string, motionIds: string[], detailIds: Record<string, string>) {
   const style = styleOptions.find((item) => item.id === styleId);
   const motions = motionOptions.filter((item) => motionIds.includes(item.id));
-  if (!style && !motions.length) return '';
+  const detailLines = detailGroups.flatMap((group) => { const picked = group.options.find((option) => option.id === detailIds[group.id]); return picked ? [`- ${group.title}: ${picked.line}`] : []; });
+  if (!style && !motions.length && !detailLines.length) return '';
   const sections: string[] = ['바탕화면\\AI실습 폴더의 index.html(있다면 style.css, script.js 포함)을 이어서 다듬는 작업이야. 페이지의 내용과 기능은 그대로 유지하고, 아래 스타일을 적용해 줘.'];
   if (style) sections.push(`[디자인 스타일 — ${style.title}]\n${style.lines.map((line) => `- ${line}`).join('\n')}`);
   if (motions.length) sections.push(`[모션 콘셉트]\n${motions.map((motion) => `${motion.title}:\n${motion.lines.map((line) => `- ${line}`).join('\n')}`).join('\n')}`);
+  if (detailLines.length) sections.push(`[디테일 지정]\n${detailLines.join('\n')}`);
   sections.push('[규칙 — 반드시 지켜줘]\n1. 외부 라이브러리, CDN, 웹폰트 링크, fetch 같은 네트워크 요청은 절대 사용하지 않는다. CSS와 JS는 파일 안에 직접 작성한다.\n2. 파일 구성은 기존 그대로 유지한다 (index.html, 필요시 style.css와 script.js).\n3. prefers-reduced-motion 사용자를 위해 과한 움직임은 줄이는 미디어 쿼리를 넣는다.\n4. 완성되면 브라우저에서 열어 화면과 기능을 확인하고 오류를 고친 뒤 알려준다.');
   return sections.join('\n\n');
 }
@@ -571,7 +649,61 @@ function MotionStage({ id }: { id: string }) {
   return <span className={`motion-stage motion-${id}`} aria-hidden="true"><i /><i /><i /><i /></span>;
 }
 
-function Advanced({ styleId, motionIds, prompt, copied, onPickStyle, onToggleMotion, onCopy, onNext, onBack, onBasic }: { styleId: string; motionIds: string[]; prompt: string; copied: boolean; onPickStyle: (id: string) => void; onToggleMotion: (id: string) => void; onCopy: () => void; onNext: () => void; onBack: () => void; onBasic: () => void }) {
+function DetailGlyph({ group, option }: { group: string; option: string }) {
+  const svg = { width: 40, height: 28, viewBox: '0 0 40 28', 'aria-hidden': true as const };
+  const key = `${group}:${option}`;
+  switch (key) {
+    case 'layout:single': return <svg {...svg}><rect x="13" y="3" width="14" height="22" rx="2" fill="currentColor" opacity=".7" /></svg>;
+    case 'layout:grid': return <svg {...svg}><g fill="currentColor" opacity=".7"><rect x="6" y="4" width="12" height="9" rx="1.5" /><rect x="22" y="4" width="12" height="9" rx="1.5" /><rect x="6" y="15" width="12" height="9" rx="1.5" /><rect x="22" y="15" width="12" height="9" rx="1.5" /></g></svg>;
+    case 'layout:bento': return <svg {...svg}><g fill="currentColor" opacity=".7"><rect x="6" y="4" width="17" height="13" rx="1.5" /><rect x="25" y="4" width="9" height="6" rx="1.5" /><rect x="25" y="12" width="9" height="12" rx="1.5" /><rect x="6" y="19" width="17" height="5" rx="1.5" /></g></svg>;
+    case 'layout:sidebar': return <svg {...svg}><g fill="currentColor" opacity=".7"><rect x="6" y="4" width="8" height="20" rx="1.5" /><rect x="17" y="4" width="17" height="9" rx="1.5" /><rect x="17" y="15" width="17" height="9" rx="1.5" /></g></svg>;
+    case 'density:relaxed': return <svg {...svg}><g fill="currentColor" opacity=".7"><rect x="8" y="7" width="24" height="4" rx="2" /><rect x="8" y="17" width="17" height="4" rx="2" /></g></svg>;
+    case 'density:balanced': return <svg {...svg}><g fill="currentColor" opacity=".7"><rect x="8" y="5" width="24" height="3.4" rx="1.7" /><rect x="8" y="12" width="24" height="3.4" rx="1.7" /><rect x="8" y="19" width="16" height="3.4" rx="1.7" /></g></svg>;
+    case 'density:dense': return <svg {...svg}><g fill="currentColor" opacity=".7"><rect x="7" y="4" width="26" height="2.4" rx="1.2" /><rect x="7" y="9" width="26" height="2.4" rx="1.2" /><rect x="7" y="14" width="26" height="2.4" rx="1.2" /><rect x="7" y="19" width="18" height="2.4" rx="1.2" /></g></svg>;
+    case 'radius:sharp': return <svg {...svg}><rect x="9" y="6" width="22" height="16" fill="none" stroke="currentColor" strokeWidth="2" /></svg>;
+    case 'radius:r8': return <svg {...svg}><rect x="9" y="6" width="22" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="2" /></svg>;
+    case 'radius:r16': return <svg {...svg}><rect x="9" y="6" width="22" height="16" rx="6" fill="none" stroke="currentColor" strokeWidth="2" /></svg>;
+    case 'radius:pill': return <svg {...svg}><rect x="9" y="7" width="22" height="14" rx="7" fill="none" stroke="currentColor" strokeWidth="2" /></svg>;
+    case 'depth:flat': return <svg {...svg}><rect x="10" y="6" width="20" height="16" rx="3" fill="currentColor" opacity=".75" /></svg>;
+    case 'depth:shadow': return <svg {...svg}><rect x="13" y="9" width="20" height="16" rx="3" fill="currentColor" opacity=".22" /><rect x="8" y="4" width="20" height="16" rx="3" fill="currentColor" opacity=".8" /></svg>;
+    case 'depth:glass': return <svg {...svg}><circle cx="13" cy="10" r="7" fill="#7a5cc6" /><circle cx="27" cy="18" r="7" fill="#4a7bd8" /><rect x="9" y="6" width="22" height="16" rx="4" fill="#ffffff" opacity=".45" /><rect x="9" y="6" width="22" height="16" rx="4" fill="none" stroke="#ffffff" strokeWidth="1.2" opacity=".9" /></svg>;
+    case 'depth:clay': return <svg {...svg}><rect x="11" y="8" width="21" height="15" rx="7" fill="currentColor" opacity=".2" /><rect x="8" y="5" width="21" height="15" rx="7" fill="currentColor" opacity=".65" /><rect x="10.5" y="7" width="16" height="4" rx="2" fill="#ffffff" opacity=".55" /></svg>;
+    case 'border:none': return <svg {...svg}><rect x="9" y="6" width="22" height="16" rx="4" fill="currentColor" opacity=".22" /></svg>;
+    case 'border:hairline': return <svg {...svg}><rect x="9" y="6" width="22" height="16" rx="4" fill="none" stroke="currentColor" strokeWidth="1" opacity=".8" /></svg>;
+    case 'border:contrast': return <svg {...svg}><rect x="9" y="6" width="22" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="2.6" /></svg>;
+    case 'border:gradient': return <svg {...svg}><defs><linearGradient id="dg-border-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#5b6ee1" /><stop offset="1" stopColor="#f637ec" /></linearGradient></defs><rect x="9" y="6" width="22" height="16" rx="4" fill="none" stroke="url(#dg-border-grad)" strokeWidth="2.4" /></svg>;
+    case 'typo:sans': return <svg {...svg}><text x="20" y="21" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="18" fontWeight="700" fill="currentColor">Aa</text></svg>;
+    case 'typo:mono': return <svg {...svg}><text x="20" y="21" textAnchor="middle" fontFamily="Consolas, monospace" fontSize="17" fontWeight="700" fill="currentColor">Aa</text></svg>;
+    case 'typo:serif': return <svg {...svg}><text x="20" y="21" textAnchor="middle" fontFamily="Georgia, serif" fontSize="18" fontStyle="italic" fill="currentColor">Aa</text></svg>;
+    case 'icons:outline': return <svg {...svg}><path d="m20 4 3 6.5 7 .8-5.2 4.8 1.4 7L20 19.6 13.8 23l1.4-7L10 11.3l7-.8L20 4Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
+    case 'icons:filled': return <svg {...svg}><path d="m20 4 3 6.5 7 .8-5.2 4.8 1.4 7L20 19.6 13.8 23l1.4-7L10 11.3l7-.8L20 4Z" fill="currentColor" /></svg>;
+    case 'icons:duotone': return <svg {...svg}><circle cx="20" cy="14" r="11" fill="currentColor" opacity=".25" /><path d="m20 7 2.1 4.5 4.9.6-3.6 3.3 1 4.9L20 17.9l-4.4 2.4 1-4.9L13 12.1l4.9-.6L20 7Z" fill="currentColor" /></svg>;
+    case 'icons:emoji3d': return <svg {...svg}><text x="20" y="21" textAnchor="middle" fontSize="17">✨</text></svg>;
+    case 'image:illust': return <svg {...svg}><rect x="8" y="5" width="24" height="18" rx="3" fill="none" stroke="currentColor" strokeWidth="1.6" /><circle cx="15" cy="11" r="2.4" fill="currentColor" opacity=".7" /><path d="m11 20 6-6 4 4 3-3 5 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>;
+    case 'image:object3d': return <svg {...svg}><defs><radialGradient id="dg-obj3d" cx=".35" cy=".3" r=".9"><stop offset="0" stopColor="#b7c4ff" /><stop offset="1" stopColor="#4658bd" /></radialGradient></defs><circle cx="20" cy="13" r="9" fill="url(#dg-obj3d)" /><ellipse cx="20" cy="24" rx="8" ry="2" fill="currentColor" opacity=".2" /></svg>;
+    case 'image:iso': return <svg {...svg}><g strokeLinejoin="round"><path d="M20 4 30 9v10L20 24 10 19V9L20 4Z" fill="currentColor" opacity=".25" /><path d="M20 4 30 9l-10 5L10 9l10-5Z" fill="currentColor" opacity=".75" /><path d="M20 14v10L10 19V9l10 5Z" fill="currentColor" opacity=".5" /></g></svg>;
+    case 'image:typoOnly': return <svg {...svg}><text x="20" y="19" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="13" fontWeight="800" fill="currentColor">Tt</text><rect x="12" y="22" width="16" height="2" rx="1" fill="currentColor" opacity=".5" /></svg>;
+    case 'background:solid': return <svg {...svg}><rect x="7" y="4" width="26" height="20" rx="3" fill="currentColor" opacity=".55" /></svg>;
+    case 'background:mesh': return <svg {...svg}><defs><radialGradient id="dg-mesh-a" cx=".25" cy=".25" r=".8"><stop offset="0" stopColor="#f4a2c5" /><stop offset="1" stopColor="#f4a2c5" stopOpacity="0" /></radialGradient><radialGradient id="dg-mesh-b" cx=".8" cy=".7" r=".8"><stop offset="0" stopColor="#7a8ff0" /><stop offset="1" stopColor="#7a8ff0" stopOpacity="0" /></radialGradient></defs><rect x="7" y="4" width="26" height="20" rx="3" fill="#ffe9d6" /><rect x="7" y="4" width="26" height="20" rx="3" fill="url(#dg-mesh-a)" /><rect x="7" y="4" width="26" height="20" rx="3" fill="url(#dg-mesh-b)" /></svg>;
+    case 'background:noise': return <svg {...svg}><rect x="7" y="4" width="26" height="20" rx="3" fill="currentColor" opacity=".14" /><g fill="currentColor" opacity=".6"><circle cx="12" cy="9" r=".8" /><circle cx="18" cy="14" r=".8" /><circle cx="25" cy="8" r=".8" /><circle cx="29" cy="18" r=".8" /><circle cx="14" cy="20" r=".8" /><circle cx="22" cy="11" r=".8" /><circle cx="27" cy="21" r=".8" /><circle cx="10" cy="15" r=".8" /></g></svg>;
+    case 'background:grid': return <svg {...svg}><rect x="7" y="4" width="26" height="20" rx="3" fill="none" stroke="currentColor" strokeWidth="1.4" opacity=".7" /><path d="M15.7 4v20M24.3 4v20M7 10.7h26M7 17.3h26" stroke="currentColor" strokeWidth=".8" opacity=".45" /></svg>;
+    case 'background:blob': return <svg {...svg}><ellipse className="dg-drift" cx="15" cy="12" rx="8" ry="6.5" fill="currentColor" opacity=".35" /><ellipse className="dg-drift-alt" cx="26" cy="17" rx="7" ry="5.5" fill="currentColor" opacity=".55" /></svg>;
+    case 'emphasis:color': return <svg {...svg}><g><circle cx="12" cy="14" r="4" fill="currentColor" opacity=".25" /><circle cx="20" cy="14" r="4" fill="#f4587a" /><circle cx="28" cy="14" r="4" fill="currentColor" opacity=".25" /></g></svg>;
+    case 'emphasis:size': return <svg {...svg}><text x="15" y="21" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="19" fontWeight="800" fill="currentColor">A</text><text x="27" y="21" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="11" fill="currentColor" opacity=".6">a</text></svg>;
+    case 'emphasis:highlight': return <svg {...svg}><rect x="9" y="14" width="22" height="7" rx="2" fill="#ffe14d" /><text x="20" y="19" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="11" fontWeight="700" fill="currentColor">밑줄</text></svg>;
+    case 'emphasis:badge': return <svg {...svg}><rect x="9" y="9" width="22" height="11" rx="5.5" fill="currentColor" opacity=".85" /><text x="20" y="17" textAnchor="middle" fontFamily="system-ui, sans-serif" fontSize="7.5" fontWeight="800" fill="#ffffff">NEW</text></svg>;
+    case 'emphasis:glow': return <svg {...svg}><circle className="dg-glow" cx="20" cy="14" r="9" fill="#2de2e6" opacity=".3" /><circle cx="20" cy="14" r="5" fill="#2de2e6" /></svg>;
+    case 'scheme:light': return <svg {...svg}><circle cx="20" cy="14" r="5" fill="currentColor" /><g stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M20 3.5v3M20 21.5v3M9.5 14h3M27.5 14h3M12.6 6.6l2.1 2.1M25.3 19.3l2.1 2.1M27.4 6.6l-2.1 2.1M14.7 19.3l-2.1 2.1" /></g></svg>;
+    case 'scheme:dark': return <svg {...svg}><path d="M24.5 4.5a10 10 0 1 0 6.8 12.6 8 8 0 0 1-6.8-12.6Z" fill="currentColor" /></svg>;
+    case 'scheme:auto': return <svg {...svg}><rect x="9" y="5" width="11" height="18" fill="currentColor" opacity=".2" /><rect x="20" y="5" width="11" height="18" fill="currentColor" opacity=".85" /><rect x="9" y="5" width="22" height="18" rx="3" fill="none" stroke="currentColor" strokeWidth="1.6" /></svg>;
+    case 'cursor:basic': return <svg {...svg}><path d="m15 5 12 10-5.4.8 3 5.6-2.9 1.5-3-5.6-3.7 3.7V5Z" fill="currentColor" /></svg>;
+    case 'cursor:custom': return <svg {...svg}><circle cx="20" cy="14" r="4.5" fill="currentColor" /></svg>;
+    case 'cursor:reactive': return <svg {...svg}><circle className="dg-ping" cx="20" cy="14" r="8" fill="none" stroke="currentColor" strokeWidth="1.5" /><circle cx="20" cy="14" r="4" fill="currentColor" /></svg>;
+    default: return <svg {...svg}><circle cx="20" cy="14" r="5" fill="currentColor" opacity=".5" /></svg>;
+  }
+}
+
+function Advanced({ styleId, motionIds, detailIds, prompt, copied, onPickStyle, onToggleMotion, onPickDetail, onCopy, onNext, onBack, onBasic }: { styleId: string; motionIds: string[]; detailIds: Record<string, string>; prompt: string; copied: boolean; onPickStyle: (id: string) => void; onToggleMotion: (id: string) => void; onPickDetail: (groupId: string, optionId: string) => void; onCopy: () => void; onNext: () => void; onBack: () => void; onBasic: () => void }) {
   const ready = Boolean(prompt);
   return <main className="app-shell builder-shell">
     <PageHeading eyebrow="PUBLISH / 02 — LEVEL UP" title="심화 다듬기: 스타일을 갈아입혀 봐요." description="목업을 누르면 그 스타일을 구현하는 요청문이 완성되고 바로 복사됩니다. Antigravity에 붙여 넣고 다시 게시해 보세요." />
@@ -581,6 +713,8 @@ function Advanced({ styleId, motionIds, prompt, copied, onPickStyle, onToggleMot
           <div className="mock-grid" role="radiogroup" aria-label="디자인 스타일">{styleOptions.map((item) => <button type="button" role="radio" aria-checked={styleId === item.id} className={`mock-card ${styleId === item.id ? 'is-selected' : ''}`} onClick={() => onPickStyle(item.id)} key={item.id}><MockStage id={item.id} /><span className="mock-copy"><strong>{item.title}</strong><small>{item.tagline}</small></span><span className="card-check">{styleId === item.id ? <Icon name="check" size={15} /> : null}</span></button>)}</div></div>
         <div className="selection-section"><div className="section-heading"><span className="section-index">02</span><div><h2>모션 콘셉트</h2><p>움직임을 미리 보고 고르세요 · 최대 2개</p></div></div>
           <div className="mock-grid motion-grid" role="group" aria-label="모션 콘셉트">{motionOptions.map((item) => <button type="button" aria-pressed={motionIds.includes(item.id)} className={`mock-card ${motionIds.includes(item.id) ? 'is-selected' : ''}`} onClick={() => onToggleMotion(item.id)} key={item.id}><MotionStage id={item.id} /><span className="mock-copy"><strong>{item.title}</strong><small>{item.tagline}</small></span><span className="card-check">{motionIds.includes(item.id) ? <Icon name="check" size={15} /> : null}</span></button>)}</div></div>
+        <div className="selection-section"><div className="section-heading"><span className="section-index">03</span><div><h2>디테일 지정</h2><p>원하는 항목만 골라 요청문에 더해져요 · 다시 누르면 해제</p></div></div>
+          <div className="detail-groups">{detailGroups.map((group) => <div className="detail-group" key={group.id}><strong className="detail-group-title">{group.title}</strong><div className="detail-options" role="radiogroup" aria-label={group.title}>{group.options.map((option) => { const selected = detailIds[group.id] === option.id; return <button type="button" role="radio" aria-checked={selected} className={`detail-chip ${selected ? 'is-selected' : ''}`} onClick={() => onPickDetail(group.id, option.id)} key={option.id}><DetailGlyph group={group.id} option={option.id} /><span>{option.title}</span></button>; })}</div></div>)}</div></div>
       </section>
       <aside className="prompt-panel"><div className="prompt-panel-head"><div><p className="eyebrow">LEVEL-UP PROMPT</p><h2>심화 요청문</h2></div><span className={`prompt-ready ${ready ? 'is-ready' : ''}`}><span />{ready ? (copied ? '복사 완료' : '준비 완료') : '목업 선택'}</span></div><div className="prompt-preview">{ready ? <pre>{prompt}</pre> : <div className="prompt-empty"><Icon name="palette" size={28} /><strong>목업을 고르면<br />요청문이 완성돼요.</strong><small>고르는 순간 자동으로 복사됩니다.</small></div>}</div><div className="prompt-panel-foot"><button className="secondary-button full" type="button" onClick={onCopy} disabled={!ready}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '요청문 복사'}</button><p><Icon name="wand" size={13} /> 결과가 완성되면 다시 게시해 새 QR을 받으세요.</p></div></aside>
     </div>
@@ -653,6 +787,7 @@ export default function Home() {
   const [directRevision, setDirectRevision] = useState('');
   const [advStyle, setAdvStyle] = useState('');
   const [advMotions, setAdvMotions] = useState<string[]>([]);
+  const [advDetails, setAdvDetails] = useState<Record<string, string>>({});
   const [advCopied, setAdvCopied] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [bundleParts, setBundleParts] = useState<string[]>([]);
@@ -692,17 +827,18 @@ export default function Home() {
   const openPromptEditor = useCallback(() => { if (!prompt) return; setPromptDraft(prompt); setPromptEditorOpen(true); }, [prompt]);
   const savePromptEditor = useCallback(() => { const value = promptDraft.trim(); if (!value) return; setPromptOverride({ source: generatedPrompt, value }); setPromptDraft(value); setPromptEditorOpen(false); }, [generatedPrompt, promptDraft]);
   const resetPromptEditor = useCallback(() => { setPromptOverride(null); setPromptDraft(generatedPrompt); }, [generatedPrompt]);
-  const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setPromptOverride(null); setPromptEditorOpen(false); setPromptDraft(''); setRevisionSelected([]); setDirectRevision(''); setAdvStyle(''); setAdvMotions([]); setFile(null); setBundleParts([]); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
+  const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setPromptOverride(null); setPromptEditorOpen(false); setPromptDraft(''); setRevisionSelected([]); setDirectRevision(''); setAdvStyle(''); setAdvMotions([]); setAdvDetails({}); setFile(null); setBundleParts([]); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
   const copyPrompt = useCallback(() => { if (!prompt) return; copyToClipboard(prompt).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); }); }, [prompt]);
   const copyRevision = useCallback(() => { copyToClipboard(revisionPrompt).then(() => { setRevisionCopied(true); window.setTimeout(() => setRevisionCopied(false), 1600); }); }, [revisionPrompt]);
-  const advancedPrompt = useMemo(() => buildAdvancedPrompt(advStyle, advMotions), [advStyle, advMotions]);
+  const advancedPrompt = useMemo(() => buildAdvancedPrompt(advStyle, advMotions, advDetails), [advDetails, advMotions, advStyle]);
   const flashAdvCopied = useCallback((text: string) => { if (!text) return; copyToClipboard(text).then(() => { setAdvCopied(true); window.setTimeout(() => setAdvCopied(false), 1600); }); }, []);
-  const pickAdvStyle = useCallback((id: string) => { setAdvStyle(id); flashAdvCopied(buildAdvancedPrompt(id, advMotions)); }, [advMotions, flashAdvCopied]);
-  const toggleAdvMotion = useCallback((id: string) => { const next = advMotions.includes(id) ? advMotions.filter((item) => item !== id) : advMotions.length >= 2 ? advMotions : [...advMotions, id]; setAdvMotions(next); flashAdvCopied(buildAdvancedPrompt(advStyle, next)); }, [advMotions, advStyle, flashAdvCopied]);
+  const pickAdvStyle = useCallback((id: string) => { setAdvStyle(id); flashAdvCopied(buildAdvancedPrompt(id, advMotions, advDetails)); }, [advDetails, advMotions, flashAdvCopied]);
+  const toggleAdvMotion = useCallback((id: string) => { const next = advMotions.includes(id) ? advMotions.filter((item) => item !== id) : advMotions.length >= 2 ? advMotions : [...advMotions, id]; setAdvMotions(next); flashAdvCopied(buildAdvancedPrompt(advStyle, next, advDetails)); }, [advDetails, advMotions, advStyle, flashAdvCopied]);
+  const pickAdvDetail = useCallback((groupId: string, optionId: string) => { const next = { ...advDetails }; if (next[groupId] === optionId) delete next[groupId]; else next[groupId] = optionId; setAdvDetails(next); flashAdvCopied(buildAdvancedPrompt(advStyle, advMotions, next)); }, [advDetails, advMotions, advStyle, flashAdvCopied]);
   const copyAdvanced = useCallback(() => { flashAdvCopied(advancedPrompt); }, [advancedPrompt, flashAdvCopied]);
   const handleFiles = useCallback(async (selected: File[]) => { setUploadError(''); try { const bundled = await bundleUpload(selected); setFile(bundled.file); setFileText(bundled.text); setBundleParts(bundled.parts); setValidation(validateHtml(bundled.text, 'index.html', bundled.file.size)); } catch (bundleError) { setFile(null); setFileText(''); setBundleParts([]); setValidation({ issues: [bundleError instanceof Error ? bundleError.message : '파일을 여는 데 문제가 있었어요. 다시 골라 주세요.'], warnings: [] }); } }, []);
   const publish = useCallback(async () => { if (!file || !fileText || validation?.issues.length) return; setUploading(true); setUploadError(''); try { const form = new FormData(); form.append('file', file, 'index.html'); const response = await fetch(apiUrl('pages'), { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }, body: form }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data?.error?.message || '잠시 뒤 게시 버튼을 한 번 더 눌러 주세요.'); const result = data as Published; setPublished(result); setLatest(result); setStep('complete'); try { window.localStorage.setItem(RESULT_KEY, JSON.stringify(result)); } catch { /* ignore */ } } catch (error) { setUploadError(error instanceof Error ? error.message : '게시가 잠시 멈췄어요. 버튼을 한 번 더 눌러 주세요.'); } finally { setUploading(false); } }, [file, fileText, validation]);
   const openLatest = () => { if (latest?.url) window.open(latest.url, '_blank', 'noopener,noreferrer'); }; const openPublished = () => { if (published?.url) window.open(published.url, '_blank', 'noopener,noreferrer'); };
   if (step === 'welcome') return <Welcome builderCode={builderCode} latest={latest} onStart={() => setStep('learn')} onOpenLatest={openLatest} />;
-  return <><TopBar step={step === 'advanced' ? 'upload' : step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onEditPrompt={openPromptEditor} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} parts={bundleParts} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFiles={handleFiles} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('advanced')} onReset={reset} /> : null}{step === 'advanced' ? <Advanced styleId={advStyle} motionIds={advMotions} prompt={advancedPrompt} copied={advCopied} onPickStyle={pickAdvStyle} onToggleMotion={toggleAdvMotion} onCopy={copyAdvanced} onNext={() => setStep('upload')} onBack={() => setStep(published ? 'complete' : 'upload')} onBasic={() => setStep('revise')} /> : null}<PromptEditorModal open={promptEditorOpen} value={promptDraft} edited={promptEdited} onChange={setPromptDraft} onClose={closePromptEditor} onSave={savePromptEditor} onReset={resetPromptEditor} /></>;
+  return <><TopBar step={step === 'advanced' ? 'upload' : step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onEditPrompt={openPromptEditor} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} parts={bundleParts} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFiles={handleFiles} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('advanced')} onReset={reset} /> : null}{step === 'advanced' ? <Advanced styleId={advStyle} motionIds={advMotions} detailIds={advDetails} prompt={advancedPrompt} copied={advCopied} onPickStyle={pickAdvStyle} onToggleMotion={toggleAdvMotion} onPickDetail={pickAdvDetail} onCopy={copyAdvanced} onNext={() => setStep('upload')} onBack={() => setStep(published ? 'complete' : 'upload')} onBasic={() => setStep('revise')} /> : null}<PromptEditorModal open={promptEditorOpen} value={promptDraft} edited={promptEdited} onChange={setPromptDraft} onClose={closePromptEditor} onSave={savePromptEditor} onReset={resetPromptEditor} /></>;
 }
