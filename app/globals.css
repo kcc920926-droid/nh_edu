@@ -233,3 +233,14 @@ h1, h2, p { margin-top: 0; }
 .file-chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 11px; }
 .file-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 11px; border-radius: 999px; background: var(--sky); color: var(--blue-dark); font-size: 12px; font-weight: 600; }
 @media (max-width: 700px) { .upload-actions { flex-wrap: wrap; } .upload-guide { padding: 11px 10px 8px; } }
+.upload-layout.is-collapsed { grid-template-columns: 1fr; }
+.upload-layout.is-collapsed .preview-window { height: clamp(460px, 68vh, 660px); }
+.upload-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 13px; padding: 14px 18px; border-radius: 17px; border: 1px solid #6bb798; background: #f3fbf7; }
+.upload-summary .file-icon { width: 42px; height: 42px; margin: 0; flex: 0 0 auto; }
+.upload-summary-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.upload-summary-info strong { font-size: 14px; }
+.upload-summary-info small { color: var(--muted); font-size: 12px; }
+.upload-summary .file-chips { margin: 0; justify-content: flex-start; }
+.upload-summary-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.upload-summary-actions .secondary-button { padding: 9px 15px; font-size: 13px; }
+@media (max-width: 700px) { .upload-summary-actions { margin-left: 0; width: 100%; justify-content: flex-start; } }

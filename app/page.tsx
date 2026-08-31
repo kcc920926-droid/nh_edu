@@ -475,14 +475,46 @@ function UploadGuide() {
   </div>;
 }
 
+// File System Access API — Chrome/Edge에서 바탕화면부터 시작하는 폴더 선택창을 띄우고, 한 번 고른 폴더를 기억한다.
+type FsFileHandle = { kind: 'file'; name: string; getFile: () => Promise<File> };
+type FsDirHandle = { kind: 'directory'; name: string; values: () => AsyncIterableIterator<FsFileHandle | FsDirHandle> };
+
+async function pickFolderFiles(): Promise<File[] | null> {
+  const picker = (window as unknown as { showDirectoryPicker?: (options?: { id?: string; startIn?: string }) => Promise<FsDirHandle> }).showDirectoryPicker;
+  if (!picker) return null;
+  try {
+    const dir = await picker({ id: 'ai-lab-output', startIn: 'desktop' });
+    const files: File[] = [];
+    const walk = async (handle: FsDirHandle, depth: number) => {
+      for await (const entry of handle.values()) {
+        if (files.length >= 60) return;
+        if (entry.kind === 'file') files.push(await entry.getFile());
+        else if (depth < 3) await walk(entry, depth + 1);
+      }
+    };
+    await walk(dir, 0);
+    return files;
+  } catch (pickError) {
+    return pickError instanceof DOMException && pickError.name === 'AbortError' ? [] : null;
+  }
+}
+
 function Upload({ file, parts, validation, preview, uploading, error, onFiles, onPublish, onBack }: { file: File | null; parts: string[]; validation: Validation | null; preview: string; uploading: boolean; error: string; onFiles: (files: File[]) => void; onPublish: () => void; onBack: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const folderRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const handleSelect = useCallback((files: File[]) => { setExpanded(false); onFiles(files); }, [onFiles]);
+  const pickFolder = useCallback(async () => {
+    const picked = await pickFolderFiles();
+    if (picked === null) { folderRef.current?.click(); return; }
+    if (picked.length) handleSelect(picked);
+  }, [handleSelect]);
+  const collapsed = !expanded && !!file && !validation?.issues.length;
   return <main className="app-shell upload-shell">
-    <PageHeading eyebrow="PUBLISH / 01 — CHECK AND UPLOAD" title="완성한 결과물을 올려 주세요." description="index.html 하나만 있어도 되고, style.css·script.js·이미지가 함께 있는 폴더째 올려도 자동으로 한 파일로 합쳐집니다." action={<span className="upload-limit"><Icon name="lock" size={14} /> 최대 1MB · 자동 합침</span>} />
-    <div className="upload-layout">
-      <section><button type="button" className={`dropzone ${dragging ? 'is-dragging' : ''} ${file ? 'has-file' : ''}`} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); void collectDropped(event.dataTransfer).then((dropped) => { if (dropped.length) onFiles(dropped); }); }}><input ref={inputRef} type="file" accept=".html,.htm,.css,.js,.mjs,.png,.jpg,.jpeg,.gif,.svg,.webp,.ico,.woff,.woff2,.ttf,.otf" multiple hidden onChange={(event) => { const selected = Array.from(event.target.files ?? []); if (selected.length) onFiles(selected); event.target.value = ''; }} /><input ref={folderRef} type="file" hidden multiple onChange={(event) => { const selected = Array.from(event.target.files ?? []); if (selected.length) onFiles(selected); event.target.value = ''; }} {...({ webkitdirectory: '' } as Record<string, string>)} />{file ? <><span className="file-icon"><Icon name="check" size={24} /></span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB · 바꾸려면 다시 눌러 주세요</small>{parts.length > 1 ? <span className="file-chips">{parts.map((part) => <span className="file-chip" key={part}><Icon name="check" size={12} /> {part}</span>)}</span> : null}</> : <><span className="upload-icon"><Icon name="upload" size={25} /></span><strong>index.html 또는 폴더 속 파일들을 골라 주세요.</strong><small>폴더를 통째로 끌어다 놓아도 돼요.</small></>}</button><div className="upload-actions"><button className="secondary-button" type="button" onClick={() => folderRef.current?.click()}><Icon name="upload" size={15} /> 폴더째 올리기</button><span className="upload-actions-note">여러 파일은 자동으로 index.html 하나로 합쳐져요.</span></div><UploadGuide />{validation?.issues.length ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>파일을 조금 다듬어 주세요.</strong>{validation.issues.map((issue) => <p key={issue}>{issue}</p>)}</div></div> : null}{validation?.warnings.length ? <div className="validation-box warning"><Icon name="warning" size={18} /><div><strong>한 번 확인해 주세요.</strong>{validation.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div></div> : null}{error ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>게시를 이어서 진행해 주세요.</strong><p>{error}</p></div></div> : null}</section>
+    <PageHeading eyebrow="PUBLISH / 01 — CHECK AND UPLOAD" title="완성한 결과물을 올려 주세요." description="바탕화면의 AI실습 폴더를 통째로 올리면 자동으로 한 파일로 합쳐집니다." action={<span className="upload-limit"><Icon name="lock" size={14} /> 최대 1MB · 자동 합침</span>} />
+    <div className={`upload-layout ${collapsed ? 'is-collapsed' : ''}`}>
+      <section>{collapsed ? <><div className="upload-summary"><span className="file-icon"><Icon name="check" size={20} /></span><div className="upload-summary-info"><strong>{file!.name}</strong><small>{(file!.size / 1024).toFixed(1)} KB · 합치기 완료</small></div>{parts.length > 1 ? <span className="file-chips">{parts.map((part) => <span className="file-chip" key={part}><Icon name="check" size={12} /> {part}</span>)}</span> : null}<div className="upload-summary-actions"><button className="secondary-button" type="button" onClick={() => void pickFolder()}><Icon name="refresh" size={15} /> 폴더 다시 올리기</button><button className="text-button" type="button" onClick={() => setExpanded(true)}>업로드 화면 펼치기</button></div></div>{validation?.warnings.length ? <div className="validation-box warning"><Icon name="warning" size={18} /><div><strong>한 번 확인해 주세요.</strong>{validation.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div></div> : null}{error ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>게시를 이어서 진행해 주세요.</strong><p>{error}</p></div></div> : null}</> : <><button type="button" className={`dropzone ${dragging ? 'is-dragging' : ''} ${file ? 'has-file' : ''}`} onClick={() => inputRef.current?.click()} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); void collectDropped(event.dataTransfer).then((dropped) => { if (dropped.length) handleSelect(dropped); }); }}><input ref={inputRef} type="file" accept=".html,.htm,.css,.js,.mjs,.png,.jpg,.jpeg,.gif,.svg,.webp,.ico,.woff,.woff2,.ttf,.otf" multiple hidden onChange={(event) => { const selected = Array.from(event.target.files ?? []); if (selected.length) handleSelect(selected); event.target.value = ""; }} /><input ref={folderRef} type="file" hidden multiple onChange={(event) => { const selected = Array.from(event.target.files ?? []); if (selected.length) handleSelect(selected); event.target.value = ""; }} {...({ webkitdirectory: '' } as Record<string, string>)} />{file ? <><span className="file-icon"><Icon name="check" size={24} /></span><strong>{file.name}</strong><small>{(file.size / 1024).toFixed(1)} KB · 바꾸려면 다시 눌러 주세요</small>{parts.length > 1 ? <span className="file-chips">{parts.map((part) => <span className="file-chip" key={part}><Icon name="check" size={12} /> {part}</span>)}</span> : null}</> : <><span className="upload-icon"><Icon name="upload" size={25} /></span><strong>index.html 또는 폴더 속 파일들을 골라 주세요.</strong><small>폴더를 통째로 끌어다 놓아도 돼요.</small></>}</button><div className="upload-actions"><button className="secondary-button" type="button" onClick={() => void pickFolder()}><Icon name="upload" size={15} /> AI실습 폴더 올리기</button><span className="upload-actions-note">바탕화면에서 AI실습 폴더를 고르면 자동으로 합쳐져요.</span></div><UploadGuide />{validation?.issues.length ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>파일을 조금 다듬어 주세요.</strong>{validation.issues.map((issue) => <p key={issue}>{issue}</p>)}</div></div> : null}{validation?.warnings.length ? <div className="validation-box warning"><Icon name="warning" size={18} /><div><strong>한 번 확인해 주세요.</strong>{validation.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div></div> : null}{error ? <div className="validation-box error"><Icon name="warning" size={18} /><div><strong>게시를 이어서 진행해 주세요.</strong><p>{error}</p></div></div> : null}</>}</section>
       <section className="preview-card"><div className="preview-head"><div><p className="eyebrow">LIVE PREVIEW</p><h2>완성 화면</h2></div><div className="preview-modes"><span className="mode-active"><Icon name="desktop" size={14} /> 데스크톱</span><span><Icon name="mobile" size={14} /> 모바일</span></div></div><div className="preview-window"><div className="window-bar"><span /><span /><span /><small>{file ? 'index.html' : '파일을 기다리는 중'}</small></div>{preview ? <iframe title="index.html 미리보기" className="preview-frame" sandbox="allow-scripts" srcDoc={preview} /> : <div className="preview-empty"><Icon name="desktop" size={28} /><span>파일을 고르면<br />완성 화면이 보여요.</span></div>}</div></section>
     </div>
     <div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 다듬기로 돌아가기</button><button className="primary-button" type="button" disabled={!file || !!validation?.issues.length || uploading} onClick={onPublish}>{uploading ? <><span className="spinner" /> 게시 중…</> : <>게시하고 URL 받기 <Icon name="arrow" size={17} /></>}</button></div>
