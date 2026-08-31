@@ -361,7 +361,7 @@ function Welcome({ builderCode, latest, onStart, onOpenLatest }: { builderCode: 
     <div className="clay-orb clay-orb-two" aria-hidden="true" />
     <div className="welcome-grid">
       <section className="welcome-copy">
-        <p className="eyebrow">FIRST AGENTIC BUILD / 40 MIN LAB</p>
+        <p className="eyebrow">FIRST AGENTIC BUILD</p>
         <h1><em>AI와 만드는</em><br />첫 웹페이지.</h1>
         <button className="primary-button large" type="button" onClick={onStart}>실습 시작하기 <Icon name="arrow" size={19} /></button>
         {latest ? <button className="latest-link" type="button" onClick={onOpenLatest}><Icon name="link" size={15} /> 최근 게시 결과 열기 <span>{formatDate(latest.createdAt)}</span></button> : null}
