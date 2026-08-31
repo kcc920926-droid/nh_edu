@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { bundleUpload } from '@/lib/bundle';
 
-type Step = 'welcome' | 'learn' | 'builder' | 'agent' | 'revise' | 'upload' | 'complete';
+type Step = 'welcome' | 'learn' | 'builder' | 'agent' | 'revise' | 'upload' | 'complete' | 'advanced';
 type IconName =
   | 'spark' | 'arrow' | 'calendar' | 'checklist' | 'dashboard' | 'users' | 'user'
   | 'palette' | 'wand' | 'copy' | 'check' | 'upload' | 'desktop' | 'mobile'
@@ -175,6 +175,93 @@ const revisionGroups = [
 ] as const;
 const revisionOptions = revisionGroups.flatMap((group) => group.options);
 
+type StyleOption = { id: string; title: string; tagline: string; lines: string[] };
+type MotionOption = { id: string; title: string; tagline: string; lines: string[] };
+
+const styleOptions: StyleOption[] = [
+  { id: 'minimal', title: '미니멀리즘', tagline: '여백과 위계로 말하는 화면', lines: [
+    '배경은 #fafafa 계열의 밝은 무채색, 텍스트는 #1d232e 계열로 통일한다.',
+    '포인트 색은 단 하나만 정해서 버튼과 강조에만 아껴 쓴다.',
+    '그림자를 없애고 1px 헤어라인 보더와 넉넉한 여백으로 영역을 나눈다.',
+    '제목은 크고 굵게, 보조 텍스트는 작고 연하게 — 타이포 위계를 뚜렷하게 만든다.',
+    '모서리는 6~10px로 절제하고 장식 요소를 최소화한다.',
+  ] },
+  { id: 'clay', title: '클레이모피즘', tagline: '말랑한 점토 질감의 파스텔 UI', lines: [
+    '파스텔 톤 배경(연보라·연하늘·크림) 위에 통통한 카드가 떠 있는 느낌으로 만든다.',
+    '모든 카드와 버튼은 20~28px의 큰 라운드를 준다.',
+    '그림자는 이중으로: 바깥쪽 부드러운 그림자 + 안쪽 위에는 밝은 하이라이트(inset)를 넣어 점토 볼륨감을 낸다.',
+    '색 대비는 낮고 부드럽게, 아이콘과 일러스트도 둥글둥글하게 유지한다.',
+    '버튼을 누르면 살짝 눌리는 느낌(scale과 그림자 축소)을 준다.',
+  ] },
+  { id: 'glass', title: '글래스모피즘', tagline: '흐린 유리 카드와 빛나는 배경', lines: [
+    '배경은 딥블루에서 퍼플로 흐르는 그라데이션에 흐릿한 광원 원 2~3개를 깐다.',
+    '카드는 rgba(255,255,255,0.14) 배경 + backdrop-filter: blur(16px) + 1px 반투명 보더 + 24px 라운드로 만든다.',
+    '텍스트는 흰색 계열로 위계를 주고, 주요 버튼만 흰 배경에 진한 글자로 반전시킨다.',
+    '그림자는 0 8px 32px rgba(0,0,0,0.25) 정도로 은은하게 띄운다.',
+    'backdrop-filter를 지원하지 않는 브라우저를 위해 카드에 불투명 폴백 배경색도 지정한다.',
+  ] },
+  { id: 'brutal', title: '브루탈리즘', tagline: '날것의 보더와 강한 대비', lines: [
+    '배경은 원색(노랑·흰색 등) 단색, 모든 요소에 3px 검정 보더를 두른다.',
+    '그림자는 흐림 없이 6px 6px 0 #000 오프셋 하드 섀도로 넣는다.',
+    '모서리는 라운드 0, 버튼과 카드가 살짝 어긋난 배치도 허용한다.',
+    '제목은 모노스페이스 또는 두꺼운 대문자, 태그·라벨은 검정 배경에 흰 글자 블록으로 만든다.',
+    'hover 시 그림자가 커지고 요소가 -2px 이동하는 반응을 준다.',
+  ] },
+  { id: 'neon', title: '다크 네온', tagline: '어두운 화면 위 빛나는 포인트', lines: [
+    '배경은 #0b0f1a 계열의 아주 어두운 남색, 텍스트는 밝은 회색으로 한다.',
+    '포인트 색은 네온 청록(#2de2e6)과 마젠타(#f637ec) 두 가지만 사용한다.',
+    '강조 요소에 box-shadow와 text-shadow로 은은한 글로우를 넣는다.',
+    '카드는 어두운 배경 + 1px rgba 보더 + 살짝 밝은 상단 그라데이션으로 만든다.',
+    '차트·수치 등 데이터 요소는 네온 색으로 빛나게 강조한다.',
+  ] },
+  { id: 'pop', title: '파스텔 팝', tagline: '스티커처럼 명랑한 무드', lines: [
+    '밝은 파스텔 다색 팔레트(민트·레몬·피치·라일락)를 섹션별로 번갈아 쓴다.',
+    '카드와 버튼은 큰 라운드에 두께감 있는 보더(2px)와 짧은 오프셋 그림자로 스티커 느낌을 낸다.',
+    '제목 옆에 어울리는 이모지를 한 개씩 포인트로 배치한다.',
+    '칩·뱃지·태그를 적극적으로 써서 정보를 알록달록하게 구분한다.',
+    '전체적으로 밝고 명랑하되 텍스트 대비는 읽기 좋게 유지한다.',
+  ] },
+];
+
+const motionOptions: MotionOption[] = [
+  { id: 'reveal', title: '등장 페이드·슬라이드', tagline: 'Animista 스타일 · 스르륵 나타나기', lines: [
+    '페이지 로드와 스크롤 시 각 섹션이 아래에서 12px 올라오며 페이드인되게 한다.',
+    'IntersectionObserver로 화면에 들어온 요소에 클래스를 붙이고 CSS transition으로 처리한다.',
+    '같은 그룹의 요소들은 80ms 간격의 시간차(stagger)를 준다.',
+  ] },
+  { id: 'micro', title: '마이크로 인터랙션', tagline: 'Uiverse 스타일 · 만지는 재미', lines: [
+    '버튼 hover 시 살짝 떠오르며 그림자가 커지고, 클릭 시 scale(0.97)로 눌리는 스프링 느낌을 준다.',
+    '카드 hover 시 2~4px 부양과 보더/그림자 변화를 준다.',
+    '체크·완료 같은 상태 변화에는 짧은 튕김(keyframes bounce) 효과를 넣는다.',
+  ] },
+  { id: 'scroll', title: '스크롤 리빌 & 카운트업', tagline: 'GSAP 스타일 · 스크롤 따라 연출', lines: [
+    '페이지 상단에 스크롤 진행 바를 만들어 스크롤 위치에 따라 채워지게 한다.',
+    '숫자(합계·진행률 등)는 화면에 들어올 때 0부터 목표값까지 카운트업시킨다(requestAnimationFrame).',
+    '섹션 제목은 스크롤 진입 시 한 번만 등장 애니메이션을 재생한다.',
+  ] },
+  { id: 'stagger', title: '스태거 시퀀스', tagline: 'Anime.js 스타일 · 순차 등장', lines: [
+    '리스트 항목과 카드들이 순서대로 60~100ms 시간차를 두고 차례로 등장하게 한다.',
+    '메인 제목은 글자 또는 단어 단위로 잘라 순차적으로 떠오르게 한다.',
+    'CSS animation-delay를 nth-child로 계산하거나 JS로 지연을 부여해 구현한다.',
+  ] },
+  { id: 'particles', title: '배경 파티클', tagline: 'tsParticles 스타일 · 떠다니는 배경', lines: [
+    'canvas 요소 하나로 은은하게 떠다니는 점 25~40개를 배경에 그린다(순수 JS, 외부 라이브러리 금지).',
+    '파티클은 느리게 부유하고 화면 밖으로 나가면 반대편에서 다시 나타난다.',
+    '본문 가독성을 해치지 않게 투명도를 낮추고 포인터 이벤트를 막는다(pointer-events: none).',
+  ] },
+];
+
+function buildAdvancedPrompt(styleId: string, motionIds: string[]) {
+  const style = styleOptions.find((item) => item.id === styleId);
+  const motions = motionOptions.filter((item) => motionIds.includes(item.id));
+  if (!style && !motions.length) return '';
+  const sections: string[] = ['바탕화면\\AI실습 폴더의 index.html(있다면 style.css, script.js 포함)을 이어서 다듬는 작업이야. 페이지의 내용과 기능은 그대로 유지하고, 아래 스타일을 적용해 줘.'];
+  if (style) sections.push(`[디자인 스타일 — ${style.title}]\n${style.lines.map((line) => `- ${line}`).join('\n')}`);
+  if (motions.length) sections.push(`[모션 콘셉트]\n${motions.map((motion) => `${motion.title}:\n${motion.lines.map((line) => `- ${line}`).join('\n')}`).join('\n')}`);
+  sections.push('[규칙 — 반드시 지켜줘]\n1. 외부 라이브러리, CDN, 웹폰트 링크, fetch 같은 네트워크 요청은 절대 사용하지 않는다. CSS와 JS는 파일 안에 직접 작성한다.\n2. 파일 구성은 기존 그대로 유지한다 (index.html, 필요시 style.css와 script.js).\n3. prefers-reduced-motion 사용자를 위해 과한 움직임은 줄이는 미디어 쿼리를 넣는다.\n4. 완성되면 브라우저에서 열어 화면과 기능을 확인하고 오류를 고친 뒤 알려준다.');
+  return sections.join('\n\n');
+}
+
 function makeBuilderCode() {
   const values = new Uint8Array(4);
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) crypto.getRandomValues(values);
@@ -241,8 +328,9 @@ function injectPreviewPolicy(html: string) {
 // basePath(/lab 등) 아래에 배포돼도 API 경로가 따라가도록 현재 페이지 경로에서 만든다.
 function apiUrl(name: string) { return `${window.location.pathname.replace(/\/$/, '')}/api/${name}`; }
 function copyToClipboard(value: string) {
-  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value);
-  const textarea = document.createElement('textarea'); textarea.value = value; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); textarea.remove(); return Promise.resolve();
+  const legacyCopy = () => { const textarea = document.createElement('textarea'); textarea.value = value; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); textarea.remove(); };
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(value).catch(() => legacyCopy());
+  legacyCopy(); return Promise.resolve();
 }
 function formatDate(value: string) { try { return new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value)); } catch { return value; } }
 
@@ -475,6 +563,31 @@ function UploadGuide() {
   </div>;
 }
 
+function MockStage({ id }: { id: string }) {
+  return <span className={`mock-stage mock-${id}`} aria-hidden="true"><span className="m-title" /><span className="m-card"><span className="m-line" /><span className="m-line is-short" /></span><span className="m-btn" /></span>;
+}
+
+function MotionStage({ id }: { id: string }) {
+  return <span className={`motion-stage motion-${id}`} aria-hidden="true"><i /><i /><i /><i /></span>;
+}
+
+function Advanced({ styleId, motionIds, prompt, copied, onPickStyle, onToggleMotion, onCopy, onNext, onBack, onBasic }: { styleId: string; motionIds: string[]; prompt: string; copied: boolean; onPickStyle: (id: string) => void; onToggleMotion: (id: string) => void; onCopy: () => void; onNext: () => void; onBack: () => void; onBasic: () => void }) {
+  const ready = Boolean(prompt);
+  return <main className="app-shell builder-shell">
+    <PageHeading eyebrow="PUBLISH / 02 — LEVEL UP" title="심화 다듬기: 스타일을 갈아입혀 봐요." description="목업을 누르면 그 스타일을 구현하는 요청문이 완성되고 바로 복사됩니다. Antigravity에 붙여 넣고 다시 게시해 보세요." />
+    <div className="builder-layout">
+      <section className="builder-selections">
+        <div className="selection-section"><div className="section-heading"><span className="section-index">01</span><div><h2>디자인 스타일 목업</h2><p>마음에 드는 무드를 하나 골라 주세요.</p></div></div>
+          <div className="mock-grid" role="radiogroup" aria-label="디자인 스타일">{styleOptions.map((item) => <button type="button" role="radio" aria-checked={styleId === item.id} className={`mock-card ${styleId === item.id ? 'is-selected' : ''}`} onClick={() => onPickStyle(item.id)} key={item.id}><MockStage id={item.id} /><span className="mock-copy"><strong>{item.title}</strong><small>{item.tagline}</small></span><span className="card-check">{styleId === item.id ? <Icon name="check" size={15} /> : null}</span></button>)}</div></div>
+        <div className="selection-section"><div className="section-heading"><span className="section-index">02</span><div><h2>모션 콘셉트</h2><p>움직임을 미리 보고 고르세요 · 최대 2개</p></div></div>
+          <div className="mock-grid motion-grid" role="group" aria-label="모션 콘셉트">{motionOptions.map((item) => <button type="button" aria-pressed={motionIds.includes(item.id)} className={`mock-card ${motionIds.includes(item.id) ? 'is-selected' : ''}`} onClick={() => onToggleMotion(item.id)} key={item.id}><MotionStage id={item.id} /><span className="mock-copy"><strong>{item.title}</strong><small>{item.tagline}</small></span><span className="card-check">{motionIds.includes(item.id) ? <Icon name="check" size={15} /> : null}</span></button>)}</div></div>
+      </section>
+      <aside className="prompt-panel"><div className="prompt-panel-head"><div><p className="eyebrow">LEVEL-UP PROMPT</p><h2>심화 요청문</h2></div><span className={`prompt-ready ${ready ? 'is-ready' : ''}`}><span />{ready ? (copied ? '복사 완료' : '준비 완료') : '목업 선택'}</span></div><div className="prompt-preview">{ready ? <pre>{prompt}</pre> : <div className="prompt-empty"><Icon name="palette" size={28} /><strong>목업을 고르면<br />요청문이 완성돼요.</strong><small>고르는 순간 자동으로 복사됩니다.</small></div>}</div><div className="prompt-panel-foot"><button className="secondary-button full" type="button" onClick={onCopy} disabled={!ready}><Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? '복사 완료' : '요청문 복사'}</button><p><Icon name="wand" size={13} /> 결과가 완성되면 다시 게시해 새 QR을 받으세요.</p></div></aside>
+    </div>
+    <div className="page-actions"><button className="text-button" type="button" onClick={onBack}><Icon name="back" size={17} /> 완료 화면으로</button><span className="page-actions-group"><button className="text-button" type="button" onClick={onBasic}>기본 다듬기</button><button className="primary-button" type="button" onClick={onNext}>다시 게시하기 <Icon name="arrow" size={17} /></button></span></div>
+  </main>;
+}
+
 // File System Access API — Chrome/Edge에서 바탕화면부터 시작하는 폴더 선택창을 띄우고, 한 번 고른 폴더를 기억한다.
 type FsFileHandle = { kind: 'file'; name: string; getFile: () => Promise<File> };
 type FsDirHandle = { kind: 'directory'; name: string; values: () => AsyncIterableIterator<FsFileHandle | FsDirHandle> };
@@ -538,6 +651,9 @@ export default function Home() {
   const [revisionCopied, setRevisionCopied] = useState(false);
   const [revisionSelected, setRevisionSelected] = useState<string[]>([]);
   const [directRevision, setDirectRevision] = useState('');
+  const [advStyle, setAdvStyle] = useState('');
+  const [advMotions, setAdvMotions] = useState<string[]>([]);
+  const [advCopied, setAdvCopied] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [bundleParts, setBundleParts] = useState<string[]>([]);
   const [fileText, setFileText] = useState('');
@@ -576,12 +692,17 @@ export default function Home() {
   const openPromptEditor = useCallback(() => { if (!prompt) return; setPromptDraft(prompt); setPromptEditorOpen(true); }, [prompt]);
   const savePromptEditor = useCallback(() => { const value = promptDraft.trim(); if (!value) return; setPromptOverride({ source: generatedPrompt, value }); setPromptDraft(value); setPromptEditorOpen(false); }, [generatedPrompt, promptDraft]);
   const resetPromptEditor = useCallback(() => { setPromptOverride(null); setPromptDraft(generatedPrompt); }, [generatedPrompt]);
-  const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setPromptOverride(null); setPromptEditorOpen(false); setPromptDraft(''); setRevisionSelected([]); setDirectRevision(''); setFile(null); setBundleParts([]); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
+  const reset = useCallback(() => { setStep('welcome'); setSlideIndex(0); setSelection({ pageType: '', audience: '', design: '', features: [] }); setPromptOverride(null); setPromptEditorOpen(false); setPromptDraft(''); setRevisionSelected([]); setDirectRevision(''); setAdvStyle(''); setAdvMotions([]); setFile(null); setBundleParts([]); setFileText(''); setValidation(null); setUploadError(''); setPublished(null); setQrCode(''); }, []);
   const copyPrompt = useCallback(() => { if (!prompt) return; copyToClipboard(prompt).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); }); }, [prompt]);
   const copyRevision = useCallback(() => { copyToClipboard(revisionPrompt).then(() => { setRevisionCopied(true); window.setTimeout(() => setRevisionCopied(false), 1600); }); }, [revisionPrompt]);
+  const advancedPrompt = useMemo(() => buildAdvancedPrompt(advStyle, advMotions), [advStyle, advMotions]);
+  const flashAdvCopied = useCallback((text: string) => { if (!text) return; copyToClipboard(text).then(() => { setAdvCopied(true); window.setTimeout(() => setAdvCopied(false), 1600); }); }, []);
+  const pickAdvStyle = useCallback((id: string) => { setAdvStyle(id); flashAdvCopied(buildAdvancedPrompt(id, advMotions)); }, [advMotions, flashAdvCopied]);
+  const toggleAdvMotion = useCallback((id: string) => { const next = advMotions.includes(id) ? advMotions.filter((item) => item !== id) : advMotions.length >= 2 ? advMotions : [...advMotions, id]; setAdvMotions(next); flashAdvCopied(buildAdvancedPrompt(advStyle, next)); }, [advMotions, advStyle, flashAdvCopied]);
+  const copyAdvanced = useCallback(() => { flashAdvCopied(advancedPrompt); }, [advancedPrompt, flashAdvCopied]);
   const handleFiles = useCallback(async (selected: File[]) => { setUploadError(''); try { const bundled = await bundleUpload(selected); setFile(bundled.file); setFileText(bundled.text); setBundleParts(bundled.parts); setValidation(validateHtml(bundled.text, 'index.html', bundled.file.size)); } catch (bundleError) { setFile(null); setFileText(''); setBundleParts([]); setValidation({ issues: [bundleError instanceof Error ? bundleError.message : '파일을 여는 데 문제가 있었어요. 다시 골라 주세요.'], warnings: [] }); } }, []);
   const publish = useCallback(async () => { if (!file || !fileText || validation?.issues.length) return; setUploading(true); setUploadError(''); try { const form = new FormData(); form.append('file', file, 'index.html'); const response = await fetch(apiUrl('pages'), { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}` }, body: form }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data?.error?.message || '잠시 뒤 게시 버튼을 한 번 더 눌러 주세요.'); const result = data as Published; setPublished(result); setLatest(result); setStep('complete'); try { window.localStorage.setItem(RESULT_KEY, JSON.stringify(result)); } catch { /* ignore */ } } catch (error) { setUploadError(error instanceof Error ? error.message : '게시가 잠시 멈췄어요. 버튼을 한 번 더 눌러 주세요.'); } finally { setUploading(false); } }, [file, fileText, validation]);
   const openLatest = () => { if (latest?.url) window.open(latest.url, '_blank', 'noopener,noreferrer'); }; const openPublished = () => { if (published?.url) window.open(published.url, '_blank', 'noopener,noreferrer'); };
   if (step === 'welcome') return <Welcome builderCode={builderCode} latest={latest} onStart={() => setStep('learn')} onOpenLatest={openLatest} />;
-  return <><TopBar step={step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onEditPrompt={openPromptEditor} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} parts={bundleParts} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFiles={handleFiles} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('revise')} onReset={reset} /> : null}<PromptEditorModal open={promptEditorOpen} value={promptDraft} edited={promptEdited} onChange={setPromptDraft} onClose={closePromptEditor} onSave={savePromptEditor} onReset={resetPromptEditor} /></>;
+  return <><TopBar step={step === 'advanced' ? 'upload' : step} onReset={reset} />{step === 'learn' ? <Learn index={slideIndex} setIndex={setSlideIndex} onNext={() => setStep('builder')} /> : null}{step === 'builder' ? <Builder selection={selection} setSelection={setSelection} prompt={prompt} copied={copied} onCopy={copyPrompt} onEditPrompt={openPromptEditor} onNext={() => setStep('agent')} /> : null}{step === 'agent' ? <AgentGuide prompt={prompt} copied={copied} onCopy={copyPrompt} onNext={() => setStep('revise')} onBack={() => setStep('builder')} /> : null}{step === 'revise' ? <Revision selected={revisionSelected} setSelected={setRevisionSelected} directText={directRevision} setDirectText={setDirectRevision} prompt={revisionPrompt} copied={revisionCopied} onCopy={copyRevision} onNext={() => setStep('upload')} onBack={() => setStep('agent')} /> : null}{step === 'upload' ? <Upload file={file} parts={bundleParts} validation={validation} preview={fileText ? injectPreviewPolicy(fileText) : ''} uploading={uploading} error={uploadError} onFiles={handleFiles} onPublish={publish} onBack={() => setStep('revise')} /> : null}{step === 'complete' && published ? <Complete code={builderCode} published={published} qrCode={qrCode} onOpen={openPublished} onCopy={() => copyToClipboard(published.url).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1600); })} copied={copied} onRevise={() => setStep('advanced')} onReset={reset} /> : null}{step === 'advanced' ? <Advanced styleId={advStyle} motionIds={advMotions} prompt={advancedPrompt} copied={advCopied} onPickStyle={pickAdvStyle} onToggleMotion={toggleAdvMotion} onCopy={copyAdvanced} onNext={() => setStep('upload')} onBack={() => setStep(published ? 'complete' : 'upload')} onBasic={() => setStep('revise')} /> : null}<PromptEditorModal open={promptEditorOpen} value={promptDraft} edited={promptEdited} onChange={setPromptDraft} onClose={closePromptEditor} onSave={savePromptEditor} onReset={resetPromptEditor} /></>;
 }
